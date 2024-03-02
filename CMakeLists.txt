@@ -5,4 +5,6 @@ set(CMAKE_CXX_STANDARD 17)
 
 add_executable(DFA main.cpp
         DFA.cpp
-        DFA.h)
+        DFA.h
+        FA.cpp
+        FA.h)
