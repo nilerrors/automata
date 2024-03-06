@@ -47,6 +47,57 @@ struct State
 	}
 };
 
+struct SetOfStates
+{
+	std::vector<State *> states;
+	State *state = nullptr;
+
+	explicit SetOfStates(const std::vector<State *> &states) : states(states) {}
+
+	State *to_state()
+	{
+		if (state != nullptr)
+			return state;
+		state = new State();
+		state->name = to_string();
+		state->starting = isStarting();
+		state->accepting = isAccepting();
+		return state;
+	}
+
+	bool isStarting() const
+	{
+		return states.size() == 1
+				&& std::any_of(
+					states.begin(),
+					states.end(),
+					[](const State *state) { return state->starting; });
+	}
+
+	bool isAccepting() const
+	{
+		return std::any_of(
+			states.begin(),
+			states.end(),
+			[](const State *state) { return state->accepting; });
+	}
+
+	[[nodiscard]]
+	std::string to_string() const
+	{
+		std::string result = "{";
+		for (const auto &state : states)
+		{
+			if (state != states.front())
+				result += ",";
+			result += state->name;
+		}
+		result += "}";
+		return result;
+	}
+};
+
+
 struct Transition
 {
 	State *from;
@@ -60,7 +111,7 @@ struct Transition
 		Transition::symbol = symbol;
 	}
 
-	Transition(State *from, State *to, std::string_view symbol)
+	Transition(State *from, State *to, std::string symbol)
 	{
 		Transition::from = from;
 		Transition::to = to;
@@ -132,6 +183,22 @@ public:
 		return nullptr;
 	}
 
+	[[nodiscard]]
+	SetOfStates *getNextStates(const SetOfStates *from, Symbol symbol) const
+	{
+		auto *nextStates = new SetOfStates({});
+		for (auto state : from->states)
+		{
+			for (auto transition : transitions)
+			{
+				if (transition->from == state && transition->symbol == symbol)
+					nextStates->states.push_back(transition->to);
+			}
+		}
+		return nextStates;
+	}
+
+	void setAlphabet(const std::vector<Symbol> &alphabet) { FA::alphabet = alphabet; }
 
 protected:
 	void validateAlphabetAndStore(const nlohmann::basic_json<> &alphabet_array);

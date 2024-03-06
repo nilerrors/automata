@@ -7,4 +7,6 @@ add_executable(DFA main.cpp
         DFA.cpp
         DFA.h
         FA.cpp
-        FA.h)
+        FA.h
+        NFA.cpp
+        NFA.h)

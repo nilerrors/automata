@@ -2,6 +2,7 @@
 #include <fstream>
 
 #include "DFA.h"
+#include "NFA.h"
 #include "json.hpp"
 
 using namespace std;
@@ -37,7 +38,14 @@ void testDFA()
 	cout << "All tests passed" << endl;
 }
 
+void testNFA()
+{
+	NFA nfa("input-ssc1.json");
+	nfa.toDFA().print();
+}
+
 int main() {
 	testDFA();
+	testNFA();
 	return 0;
 }

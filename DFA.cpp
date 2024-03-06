@@ -34,8 +34,6 @@ DFA::DFA() : FA("DFA")
 [[maybe_unused]]
 DFA::DFA(const std::string &file_path) : FA("DFA")
 {
-	FA::type = "DFA";
-
 	fromPath(file_path);
 }
 
