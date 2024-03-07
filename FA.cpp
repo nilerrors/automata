@@ -62,12 +62,12 @@ void FA::fromJSON(const json &j)
 
 FA::~FA()
 {
-	for (State *&state : states)
+	for (auto &state : states)
 	{
 		delete state;
 		state = nullptr;
 	}
-	for (Transition *&transition : transitions)
+	for (auto &transition : transitions)
 	{
 		delete transition;
 		transition = nullptr;
@@ -93,6 +93,25 @@ json FA::to_json() const
 	}
 
 	return j;
+}
+
+std::string FA::to_dot() const
+{
+	std::string result = "digraph " + type + " {\n";
+	result += "  rankdir=LR;\n";
+	for (const auto &state : states)
+	{
+		result += "  " + state->name + " [shape=" + (state->accepting ? "doublecircle" : "circle") + "];\n";
+		if (state->starting)
+			result += "  start -> " + state->name + ";\n";
+	}
+	for (const auto &transition : transitions)
+	{
+		result += "  " + transition->from->name + " -> " + transition->to->name
+				+ " [label=\"" + transition->symbol + "\"];\n";
+	}
+	result += "}\n";
+	return result;
 }
 
 void FA::print() const

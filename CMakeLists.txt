@@ -3,7 +3,7 @@ project(DFA)
 
 set(CMAKE_CXX_STANDARD 17)
 
-add_executable(DFA main.cpp
+add_executable(Automata main.cpp
         DFA.cpp
         DFA.h
         FA.cpp

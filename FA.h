@@ -6,7 +6,7 @@
 #define AUTOMATA_FA_H
 
 #include <string>
-#include <memory>
+#include <set>
 #include "json.hpp"
 
 using json = nlohmann::json;
@@ -49,10 +49,10 @@ struct State
 
 struct SetOfStates
 {
-	std::vector<State *> states;
+	std::set<State *> states;
 	State *state = nullptr;
 
-	explicit SetOfStates(const std::vector<State *> &states) : states(states) {}
+	explicit SetOfStates(const std::set<State *> &states) : states(states) {}
 
 	State *to_state()
 	{
@@ -86,17 +86,23 @@ struct SetOfStates
 	std::string to_string() const
 	{
 		std::string result = "{";
-		for (const auto &state : states)
+		std::vector<std::string> all_names;
+		all_names.reserve(states.size());
+		for (auto state : states)
 		{
-			if (state != states.front())
+			all_names.push_back(state->name);
+		}
+		std::sort(all_names.begin(), all_names.end());
+		for (auto &name : all_names)
+		{
+			if (name != all_names.front())
 				result += ",";
-			result += state->name;
+			result += name;
 		}
 		result += "}";
 		return result;
 	}
 };
-
 
 struct Transition
 {
@@ -145,6 +151,9 @@ public:
 	[[nodiscard]]
 	virtual json to_json() const;
 
+	[[nodiscard]]
+	virtual std::string to_dot() const;
+
 	void print() const;
 
 	void addState(State *state) { states.push_back(state); }
@@ -192,7 +201,7 @@ public:
 			for (auto transition : transitions)
 			{
 				if (transition->from == state && transition->symbol == symbol)
-					nextStates->states.push_back(transition->to);
+					nextStates->states.insert(transition->to);
 			}
 		}
 		return nextStates;

@@ -40,7 +40,8 @@ void testDFA()
 
 void testNFA()
 {
-	NFA nfa("input-ssc1.json");
+	NFA nfa("input-ssc2.json");
+	std::cout << nfa.to_dot() << std::endl;
 	nfa.toDFA().print();
 }
 

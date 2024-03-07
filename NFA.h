@@ -9,7 +9,7 @@
 #include "DFA.h"
 
 
-class NFA : FA
+class NFA : public FA
 {
 public:
 	NFA();

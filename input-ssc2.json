@@ -1,0 +1,71 @@
+{
+  "type": "NFA",
+  "alphabet": [
+    "0",
+    "1"
+  ],
+  "states": [
+    {
+      "name": "p",
+      "starting": true,
+      "accepting": false
+    },
+    {
+      "name": "q",
+      "starting": false,
+      "accepting": false
+    },
+    {
+      "name": "r",
+      "starting": false,
+      "accepting": false
+    },
+    {
+      "name": "s",
+      "starting": false,
+      "accepting": true
+    }
+  ],
+  "transitions": [
+    {
+      "from": "p",
+      "to": "p",
+      "input": "0"
+    },
+    {
+      "from": "p",
+      "to": "p",
+      "input": "1"
+    },
+    {
+      "from": "p",
+      "to": "q",
+      "input": "0"
+    },
+    {
+      "from": "q",
+      "to": "r",
+      "input": "0"
+    },
+    {
+      "from": "q",
+      "to": "r",
+      "input": "1"
+    },
+    {
+      "from": "r",
+      "to": "s",
+      "input": "0"
+    },
+    {
+      "from": "s",
+      "to": "s",
+      "input": "0"
+    },
+    {
+      "from": "s",
+      "to": "s",
+      "input": "1"
+    }
+  ]
+}
