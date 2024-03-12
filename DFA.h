@@ -5,8 +5,6 @@
 #ifndef AUTOMATA_DFA_H
 #define AUTOMATA_DFA_H
 
-#include <vector>
-#include <unordered_map>
 #include <string>
 #include "json.hpp"
 

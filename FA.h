@@ -12,7 +12,7 @@
 using json = nlohmann::json;
 using Symbol = char;
 
-const int SYMBOL_SIZE = 1;
+constexpr int SYMBOL_SIZE = 1;
 
 struct State
 {
@@ -27,7 +27,7 @@ struct State
 		accepting = false;
 	}
 
-	State(const std::string &name, bool isBegin, bool isEnd)
+	State(const std::string &name, const bool isBegin, const bool isEnd)
 	{
 		State::name = name;
 		starting = isBegin;
@@ -51,8 +51,13 @@ struct SetOfStates
 {
 	std::set<State *> states;
 	State *state = nullptr;
+	bool isStarting = false;
 
-	explicit SetOfStates(const std::set<State *> &states) : states(states) {}
+	explicit SetOfStates(const std::set<State *> &states, const bool starting = false)
+						: states(states), isStarting(starting) {}
+
+	void add(State *state) { states.insert(state); }
+	void add(const SetOfStates *set) { states.insert(set->states.begin(), set->states.end()); }
 
 	State *to_state()
 	{
@@ -60,20 +65,12 @@ struct SetOfStates
 			return state;
 		state = new State();
 		state->name = to_string();
-		state->starting = isStarting();
+		state->starting = isStarting;
 		state->accepting = isAccepting();
 		return state;
 	}
 
-	bool isStarting() const
-	{
-		return states.size() == 1
-				&& std::any_of(
-					states.begin(),
-					states.end(),
-					[](const State *state) { return state->starting; });
-	}
-
+	[[nodiscard]]
 	bool isAccepting() const
 	{
 		return std::any_of(
@@ -88,7 +85,7 @@ struct SetOfStates
 		std::string result = "{";
 		std::vector<std::string> all_names;
 		all_names.reserve(states.size());
-		for (auto state : states)
+		for (const auto state : states)
 		{
 			all_names.push_back(state->name);
 		}
@@ -110,14 +107,14 @@ struct Transition
 	State *to;
 	Symbol symbol;
 
-	Transition(State *from, State *to, Symbol symbol)
+	Transition(State *from, State *to, const Symbol symbol)
 	{
 		Transition::from = from;
 		Transition::to = to;
 		Transition::symbol = symbol;
 	}
 
-	Transition(State *from, State *to, std::string symbol)
+	Transition(State *from, State *to, const std::string &symbol)
 	{
 		Transition::from = from;
 		Transition::to = to;
@@ -159,53 +156,19 @@ public:
 	void addState(State *state) { states.push_back(state); }
 	void addTransition(Transition *transition) { transitions.push_back(transition); }
 
-	[[nodiscard]] [[maybe_unused]]
-	const std::string &getType() const { return type; }
-	[[nodiscard]] [[maybe_unused]]
-	const std::vector<Symbol> &getAlphabet() const { return alphabet; }
-	[[nodiscard]] [[maybe_unused]]
-	State* getStartingState() const { return (startingStates.empty() ? nullptr : startingStates.front()); }
-	[[nodiscard]] [[maybe_unused]]
-	const std::vector<State *> &getStates() const { return states; }
-	[[nodiscard]] [[maybe_unused]]
-	const std::vector<Transition *> &getTransitions() const { return transitions; }
+	[[nodiscard]] const std::string &getType() const { return type; }
+	[[nodiscard]] const std::vector<Symbol> &getAlphabet() const { return alphabet; }
+	[[nodiscard]] State *getStartingState() const { return startingStates.empty() ? nullptr : startingStates.front(); }
+	[[nodiscard]] SetOfStates* getStartingStates() const { return e_closure(getStartingState(), new SetOfStates({}, true)); }
+	[[nodiscard]] const std::vector<State *> &getStates() const { return states; }
+	[[nodiscard]] const std::vector<Transition *> &getTransitions() const { return transitions; }
 
-	[[nodiscard]]
-	State *getState(const std::string &name) const
-	{
-		for (auto state : states)
-		{
-			if (state->name == name)
-				return state;
-		}
-		return nullptr;
-	}
+	[[nodiscard]] State *getState(const std::string &name) const;
+	[[nodiscard]] State *getNextState(const State *from, Symbol symbol) const;
+	[[nodiscard]] SetOfStates *getNextStates(const SetOfStates *from, Symbol symbol) const;
 
-	[[nodiscard]]
-	State *getNextState(State *from, Symbol symbol) const
-	{
-		for (auto transition : transitions)
-		{
-			if (transition->from == from && transition->symbol == symbol)
-				return transition->to;
-		}
-		return nullptr;
-	}
-
-	[[nodiscard]]
-	SetOfStates *getNextStates(const SetOfStates *from, Symbol symbol) const
-	{
-		auto *nextStates = new SetOfStates({});
-		for (auto state : from->states)
-		{
-			for (auto transition : transitions)
-			{
-				if (transition->from == state && transition->symbol == symbol)
-					nextStates->states.insert(transition->to);
-			}
-		}
-		return nextStates;
-	}
+	// modifies the given set of states
+	SetOfStates *e_closure(State *state, SetOfStates *states) const;
 
 	void setAlphabet(const std::vector<Symbol> &alphabet) { FA::alphabet = alphabet; }
 
@@ -222,6 +185,9 @@ protected:
 	std::vector<State *> startingStates;
 
 	bool allowMultipleStartStates = false;
+	bool allowEpsilonTransitions = false;
+	// if epsilon is not used, it will be '\0'
+	Symbol epsilon = '\0';
 };
 
 

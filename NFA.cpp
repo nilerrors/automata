@@ -24,12 +24,12 @@ DFA NFA::toDFA() const
 
 	dfa.clear();
 	dfa.setAlphabet(alphabet);
-	auto *starting = new SetOfStates({ getStartingState() });
+	SetOfStates *starting = getStartingStates();
 	std::deque<SetOfStates *> unprocessed_states = { starting };
 	std::set<SetOfStates *> all_states = { starting };
 
 	auto in_all_states = [&all_states](SetOfStates const *set) -> bool {
-		return std::any_of(all_states.cbegin(), all_states.cend(), [set](SetOfStates *s) {
+		return std::any_of(all_states.cbegin(), all_states.cend(), [set](const SetOfStates *s) {
 			return s->states.size() == set->states.size() && s->to_string() == set->to_string();
 		});
 	};

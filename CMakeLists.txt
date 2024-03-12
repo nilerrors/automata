@@ -9,4 +9,6 @@ add_executable(Automata main.cpp
         FA.cpp
         FA.h
         NFA.cpp
-        NFA.h)
+        NFA.h
+        ENFA.cpp
+        ENFA.h)

@@ -3,7 +3,6 @@
 //
 
 #include <fstream>
-#include <iostream>
 #include <iomanip>
 
 #include "DFA.h"
@@ -45,7 +44,7 @@ bool DFA::accepts(const std::string& string) const
 	if (currentState == nullptr)
 		return false;
 
-	for (char c : string)
+	for (const Symbol c : string)
 	{
 		currentState = getNextState(currentState, c);
 		if (currentState == nullptr)

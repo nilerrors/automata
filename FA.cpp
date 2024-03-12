@@ -54,6 +54,15 @@ void FA::fromJSON(const json &j)
 		throw std::runtime_error("Invalid states type, must be of type array");
 	if (!j["transitions"].is_array())
 		throw std::runtime_error("Invalid transitions type, must be of type array");
+	if (allowEpsilonTransitions)
+	{
+		if (j["eps"].empty())
+			throw std::runtime_error("Epsilon transitions are allowed, but no symbol was provided");
+		if (!j["eps"].is_string())
+			throw std::runtime_error("Epsilon symbol must be of type string");
+
+		epsilon = j["eps"].get<std::string>().front();
+	}
 
 	validateAlphabetAndStore(j["alphabet"]);
 	validateStatesAndStore(j["states"]);
@@ -197,9 +206,12 @@ void FA::validateTransitionsAndStore(const nlohmann::basic_json<> &transitions_a
 			throw std::runtime_error("transition input attribute must be of size 1");
 		if (std::find(alphabet.cbegin(), alphabet.cend(),
 		              transition["input"].get<std::string>().front()) == alphabet.cend())
-			throw std::runtime_error(
-					"transition input attribute must be part of alphabet, got: "
-					+ transition["input"].get<std::string>());
+		{
+			if (allowEpsilonTransitions && transition["input"].get<std::string>().front() != epsilon)
+				throw std::runtime_error(
+						"transition input attribute must be part of alphabet, got: "
+							+ transition["input"].get<std::string>());
+		}
 
 		addTransition(
 				new Transition(
@@ -209,3 +221,50 @@ void FA::validateTransitionsAndStore(const nlohmann::basic_json<> &transitions_a
 	}
 }
 
+
+State *FA::getState(const std::string &name) const
+{
+	for (const auto state : states)
+	{
+		if (state->name == name)
+			return state;
+	}
+	return nullptr;
+}
+
+State *FA::getNextState(const State *from, const Symbol symbol) const
+{
+	for (const auto transition : transitions)
+	{
+		if (transition->from == from && transition->symbol == symbol)
+		return transition->to;
+	}
+	return nullptr;
+}
+
+SetOfStates *FA::getNextStates(const SetOfStates *from, const Symbol symbol) const
+{
+	auto *nextStates = new SetOfStates({});
+	for (const auto state : from->states)
+	{
+		for (const auto transition : transitions)
+		{
+			if (transition->from == state && transition->symbol == symbol)
+			nextStates->add(e_closure(transition->to, nextStates));
+		}
+	}
+	return nextStates;
+}
+
+
+// modifies the given set of states
+SetOfStates *FA::e_closure(State *state, SetOfStates *states) const
+{
+	states->add(state);
+	for (const auto transition : transitions)
+	{
+		if (transition->from == state && transition->symbol == epsilon && !states->states.count(transition->to))
+			e_closure(transition->to, states);
+	}
+	return states;
+}

@@ -1,0 +1,131 @@
+{
+  "alphabet": [
+    "0",
+    "1"
+  ],
+  "states": [
+    {
+      "accepting": false,
+      "name": "{p}",
+      "starting": true
+    },
+    {
+      "accepting": false,
+      "name": "{p,q}",
+      "starting": false
+    },
+    {
+      "accepting": false,
+      "name": "{p,q,r}",
+      "starting": false
+    },
+    {
+      "accepting": false,
+      "name": "{p,r}",
+      "starting": false
+    },
+    {
+      "accepting": true,
+      "name": "{p,q,r,s}",
+      "starting": false
+    },
+    {
+      "accepting": true,
+      "name": "{p,q,s}",
+      "starting": false
+    },
+    {
+      "accepting": true,
+      "name": "{p,r,s}",
+      "starting": false
+    },
+    {
+      "accepting": true,
+      "name": "{p,s}",
+      "starting": false
+    }
+  ],
+  "transitions": [
+    {
+      "from": "{p}",
+      "input": "0",
+      "to": "{p,q}"
+    },
+    {
+      "from": "{p}",
+      "input": "1",
+      "to": "{p}"
+    },
+    {
+      "from": "{p,q}",
+      "input": "0",
+      "to": "{p,q,r}"
+    },
+    {
+      "from": "{p,q}",
+      "input": "1",
+      "to": "{p,r}"
+    },
+    {
+      "from": "{p,q,r}",
+      "input": "0",
+      "to": "{p,q,r,s}"
+    },
+    {
+      "from": "{p,q,r}",
+      "input": "1",
+      "to": "{p,r}"
+    },
+    {
+      "from": "{p,r}",
+      "input": "0",
+      "to": "{p,q,s}"
+    },
+    {
+      "from": "{p,r}",
+      "input": "1",
+      "to": "{p}"
+    },
+    {
+      "from": "{p,q,r,s}",
+      "input": "0",
+      "to": "{p,q,r,s}"
+    },
+    {
+      "from": "{p,q,r,s}",
+      "input": "1",
+      "to": "{p,r,s}"
+    },
+    {
+      "from": "{p,q,s}",
+      "input": "0",
+      "to": "{p,q,r,s}"
+    },
+    {
+      "from": "{p,q,s}",
+      "input": "1",
+      "to": "{p,r,s}"
+    },
+    {
+      "from": "{p,r,s}",
+      "input": "0",
+      "to": "{p,q,s}"
+    },
+    {
+      "from": "{p,r,s}",
+      "input": "1",
+      "to": "{p,s}"
+    },
+    {
+      "from": "{p,s}",
+      "input": "0",
+      "to": "{p,q,s}"
+    },
+    {
+      "from": "{p,s}",
+      "input": "1",
+      "to": "{p,s}"
+    }
+  ],
+  "type": "DFA"
+}

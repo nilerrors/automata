@@ -3,6 +3,7 @@
 
 #include "DFA.h"
 #include "NFA.h"
+#include "ENFA.h"
 #include "json.hpp"
 
 using namespace std;
@@ -34,19 +35,31 @@ void testDFA()
 		throw runtime_error("Failed test 5: did not accept 0001");
 	if (!compareSrcJSON("DFA.json", dfa.to_json()))
 		throw runtime_error("Failed test 6: JSONs are not equal");
-
-	cout << "All tests passed" << endl;
 }
 
 void testNFA()
 {
-	NFA nfa("input-ssc2.json");
-	std::cout << nfa.to_dot() << std::endl;
-	nfa.toDFA().print();
+	NFA nfa("input-ssc1.json");
+	if (!compareSrcJSON("expected_output-ssc1.json", nfa.toDFA().to_json()))
+		throw runtime_error("Failed test 0: JSONs are not equal");
+
+	nfa.clear();
+	nfa.fromPath("input-ssc2.json");
+	if (!compareSrcJSON("expected_output-ssc2.json", nfa.toDFA().to_json()))
+		throw runtime_error("Failed test 1: JSONs are not equal");
+}
+
+void testENFA()
+{
+	ENFA enfa("input-mssc1.json");
+	enfa.toDFA().print();
 }
 
 int main() {
 	testDFA();
 	testNFA();
+	testENFA();
+
+	cout << "All tests passed" << endl;
 	return 0;
 }
