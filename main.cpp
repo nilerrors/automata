@@ -52,7 +52,8 @@ void testNFA()
 void testENFA()
 {
 	ENFA enfa("input-mssc1.json");
-	enfa.toDFA().print();
+	if (!compareSrcJSON("expected_output-mssc1.json", enfa.toDFA().to_json()))
+		throw runtime_error("Failed test 0: JSONs are not equal");
 }
 
 int main() {
