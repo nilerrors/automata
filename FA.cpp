@@ -15,19 +15,18 @@ FA::FA(const std::string &type)
 void FA::clear()
 {
 	alphabet.clear();
-	for (State *&state : states)
+	for (State *state : states)
 	{
 		delete state;
-		state = nullptr;
 	}
-	for (Transition *&transition : transitions)
+	for (Transition *transition : transitions)
 	{
 		delete transition;
-		transition = nullptr;
 	}
 
+	startingState = nullptr;
+	alphabet.clear();
 	states.clear();
-	startingStates.clear();
 	transitions.clear();
 }
 
@@ -71,16 +70,7 @@ void FA::fromJSON(const json &j)
 
 FA::~FA()
 {
-	for (auto &state : states)
-	{
-		delete state;
-		state = nullptr;
-	}
-	for (auto &transition : transitions)
-	{
-		delete transition;
-		transition = nullptr;
-	}
+	clear();
 }
 
 json FA::to_json() const
@@ -138,7 +128,7 @@ void FA::validateAlphabetAndStore(const nlohmann::basic_json<> &alphabet_array)
 		if (letter.size() != SYMBOL_SIZE)
 			throw std::runtime_error("symbol must be of size 1");
 
-		alphabet.push_back(letter.get<std::string>().front());
+		alphabet.insert(letter.get<std::string>().front());
 	}
 }
 
@@ -169,15 +159,15 @@ void FA::validateStatesAndStore(const nlohmann::basic_json<> &states_array)
 
 		if (new_state->starting)
 		{
-			if (!startingStates.empty() && !allowMultipleStartStates)
+			if (startingState != nullptr)
 				throw std::runtime_error("cannot have multiple instances of starting states");
 
-			startingStates.push_back(new_state);
+			startingState = new_state;
 		}
 	}
 
-	if (startingStates.empty())
-		throw std::runtime_error("no starting state(s) provided");
+	if (startingState == nullptr)
+		throw std::runtime_error("no starting state provided");
 }
 
 void FA::validateTransitionsAndStore(const nlohmann::basic_json<> &transitions_array)

@@ -17,6 +17,7 @@ public:
 	DFA();
 	[[maybe_unused]]
 	explicit DFA(const std::string &file_path);
+	explicit DFA(const DFA &first, const DFA &second, bool isIntersection);
 	virtual ~DFA();
 
 	[[nodiscard]]

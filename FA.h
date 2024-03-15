@@ -101,6 +101,37 @@ struct SetOfStates
 	}
 };
 
+struct PairOfStates
+{
+	std::pair<State *, State *> states;
+	State *state = nullptr;
+	bool isStarting = false;
+	bool isAccepting = false;
+
+	PairOfStates() : states({nullptr, nullptr}) {}
+
+	PairOfStates(State *first, State *second, const bool start, const bool end)
+				: states({first, second}), isStarting(start), isAccepting(end) {}
+
+	[[nodiscard]]
+	State *to_state()
+	{
+		if (state != nullptr)
+			return state;
+		state = new State();
+		state->name = to_string();
+		state->starting = isStarting;
+		state->accepting = isAccepting;
+		return state;
+	}
+
+	[[nodiscard]]
+	std::string to_string() const
+	{
+		return "(" + states.first->name + "," + states.second->name + ")";
+	}
+};
+
 struct Transition
 {
 	State *from;
@@ -153,15 +184,33 @@ public:
 
 	void print() const;
 
-	void addState(State *state) { states.push_back(state); }
-	void addTransition(Transition *transition) { transitions.push_back(transition); }
+	void addState(State *state)
+	{
+		for (const auto s : states)
+		{
+			if (s->name == state->name)
+				return;
+		}
+		states.insert(state);
+	}
+	void addTransition(Transition *transition)
+	{
+		for (const auto t : transitions)
+		{
+			if (t->from->name == transition->from->name
+				&& t->to->name == transition->to->name
+				&& t->symbol == transition->symbol)
+				return;
+		}
+		transitions.insert(transition);
+	}
 
 	[[nodiscard]] const std::string &getType() const { return type; }
-	[[nodiscard]] const std::vector<Symbol> &getAlphabet() const { return alphabet; }
-	[[nodiscard]] State *getStartingState() const { return startingStates.empty() ? nullptr : startingStates.front(); }
-	[[nodiscard]] SetOfStates* getStartingStates() const { return e_closure(getStartingState(), new SetOfStates({}, true)); }
-	[[nodiscard]] const std::vector<State *> &getStates() const { return states; }
-	[[nodiscard]] const std::vector<Transition *> &getTransitions() const { return transitions; }
+	[[nodiscard]] const std::set<Symbol> &getAlphabet() const { return alphabet; }
+	[[nodiscard]] State *getStartingState() const { return startingState; }
+	[[nodiscard]] SetOfStates* getStartingStates() const { return e_closure(startingState, new SetOfStates({}, true)); }
+	[[nodiscard]] const std::set<State *> &getStates() const { return states; }
+	[[nodiscard]] const std::set<Transition *> &getTransitions() const { return transitions; }
 
 	[[nodiscard]] State *getState(const std::string &name) const;
 	[[nodiscard]] State *getNextState(const State *from, Symbol symbol) const;
@@ -170,7 +219,7 @@ public:
 	// modifies the given set of states
 	SetOfStates *e_closure(State *state, SetOfStates *states) const;
 
-	void setAlphabet(const std::vector<Symbol> &alphabet) { FA::alphabet = alphabet; }
+	void setAlphabet(const std::set<Symbol> &alphabet) { FA::alphabet = alphabet; }
 
 protected:
 	void validateAlphabetAndStore(const nlohmann::basic_json<> &alphabet_array);
@@ -179,12 +228,11 @@ protected:
 
 protected:
 	std::string type;
-	std::vector<Symbol> alphabet;
-	std::vector<State *> states;
-	std::vector<Transition *> transitions;
-	std::vector<State *> startingStates;
+	std::set<Symbol> alphabet;
+	std::set<State *> states;
+	std::set<Transition *> transitions;
+	State * startingState = nullptr;
 
-	bool allowMultipleStartStates = false;
 	bool allowEpsilonTransitions = false;
 	// if epsilon is not used, it will be '\0'
 	Symbol epsilon = '\0';
