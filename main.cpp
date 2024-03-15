@@ -58,40 +58,40 @@ void testDFA()
 		throw runtime_error("Failed test 3: did not accept 0001");
 
 	dfa.clear();
-	dfa.fromPath("DFA.json");
+	dfa.fromPath("jsons/DFA.json");
 	if (dfa.accepts("0010110100"))
 		throw runtime_error("Failed test 4: did not accept 0010110100");
 	if (!dfa.accepts("0001"))
 		throw runtime_error("Failed test 5: did not accept 0001");
-	if (!compareSrcJSON("DFA.json", dfa.to_json()))
+	if (!compareSrcJSON("jsons/DFA.json", dfa.to_json()))
 		throw runtime_error("Failed test 6: DFA is not equal to the original JSON");
 }
 
 void testNFA()
 {
-	NFA nfa("input-ssc1.json");
-	if (!compareSrcJSON("expected_output-ssc1.json", nfa.toDFA().to_json()))
+	NFA nfa("jsons/input-ssc1.json");
+	if (!compareSrcJSON("jsons/expected_output-ssc1.json", nfa.toDFA().to_json()))
 		throw runtime_error("Failed test 0: SSC1 is incorrect");
 
 	nfa.clear();
-	nfa.fromPath("input-ssc2.json");
-	if (!compareSrcJSON("expected_output-ssc2.json", nfa.toDFA().to_json()))
+	nfa.fromPath("jsons/input-ssc2.json");
+	if (!compareSrcJSON("jsons/expected_output-ssc2.json", nfa.toDFA().to_json()))
 		throw runtime_error("Failed test 1: SSC2 is incorrect");
 }
 
 void testENFA()
 {
-	ENFA enfa("input-mssc1.json");
-	if (!compareSrcJSON("expected_output-mssc1.json", enfa.toDFA().to_json()))
+	ENFA enfa("jsons/input-mssc1.json");
+	if (!compareSrcJSON("jsons/expected_output-mssc1.json", enfa.toDFA().to_json()))
 		throw runtime_error("Failed test 0: ENFA is incorrect");
 }
 
 void testProduct()
 {
-	DFA dfa1("input-product-and1.json");
-    DFA dfa2("input-product-and2.json");
+	DFA dfa1("jsons/input-product-and1.json");
+    DFA dfa2("jsons/input-product-and2.json");
     DFA product(dfa1,dfa2,true); // true betekent doorsnede, false betekent unie
-    if (!compareSrcJSON("expected_output-product.json", product.to_json()))
+    if (!compareSrcJSON("jsons/expected_output-product.json", product.to_json()))
     {
     	product.print();
 	    throw runtime_error("Failed test 0: Product Automaton is incorrect");
