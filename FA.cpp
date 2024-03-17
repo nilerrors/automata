@@ -141,22 +141,16 @@ void FA::print() const
 
 void FA::printStats() const
 {
-	std::cout << "no_of_states=" << states.size() << std::endl;
-
 	auto symbol_count = [&](const Symbol symbol) -> long {
 		return std::count_if(transitions.begin(), transitions.end(), [&symbol](const Transition *transition) {
 			return transition->symbol == symbol;
 		});
 	};
 
-	if (allowEpsilonTransitions)
-		std::cout << "no_of_transitions[" << epsilon << "]=" << symbol_count(epsilon) << std::endl;
-	for (const Symbol symbol : alphabet)
-	{
-		std::cout << "no_of_transitions[" << symbol << "]=" << symbol_count(symbol) << std::endl;
-	}
+	std::vector<Symbol> alphabet_symbols;
+	std::copy(alphabet.begin(), alphabet.end(), std::back_inserter(alphabet_symbols));
+	std::sort(alphabet_symbols.begin(), alphabet_symbols.end());
 
-	// the degree of a state is the number of transitions that go out of it
 	std::map<uint, uint> degrees;
 	for (const auto state : states)
 	{
@@ -168,9 +162,25 @@ void FA::printStats() const
 		degrees[degree]++;
 	}
 
-	for (const auto& [degree, count] : degrees)
+	std::vector<uint> degrees_vector;
+	std::transform(degrees.begin(), degrees.end(), std::back_inserter(degrees_vector),
+	               [](const std::pair<uint, uint> &degree) { return degree.first; });
+	std::sort(degrees_vector.begin(), degrees_vector.end());
+
+
+	std::cout << "no_of_states=" << states.size() << std::endl;
+
+	if (allowEpsilonTransitions)
+		std::cout << "no_of_transitions[" << epsilon << "]=" << symbol_count(epsilon) << std::endl;
+
+	for (const Symbol symbol : alphabet_symbols)
 	{
-		std::cout << "degree[" << degree << "]=" << count << std::endl;
+		std::cout << "no_of_transitions[" << symbol << "]=" << symbol_count(symbol) << std::endl;
+	}
+
+	for (const auto& degree : degrees_vector)
+	{
+		std::cout << "degree[" << degree << "]=" << degrees[degree] << std::endl;
 	}
 }
 
