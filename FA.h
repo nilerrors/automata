@@ -208,6 +208,7 @@ public:
 	SetOfStates *e_closure(State *state, SetOfStates *states) const;
 
 	void setAlphabet(const std::set<Symbol> &alphabet) { FA::alphabet = alphabet; }
+	void setEpsilon(const Symbol epsilon) { FA::epsilon = epsilon; }
 
 protected:
 	void validateAlphabetAndStore(const nlohmann::basic_json<> &alphabet_array);

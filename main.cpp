@@ -6,6 +6,7 @@
 #include "NFA.h"
 #include "ENFA.h"
 #include "json.hpp"
+#include "RE.h"
 
 using namespace std;
 using json = nlohmann::json;
@@ -98,11 +99,58 @@ void testProduct()
     }
 }
 
+void testREisValid()
+{
+	if (!RE::isValid(""))
+		throw runtime_error("Failed test 0: RE is valid");
+	if (!RE::isValid("this"))
+		throw runtime_error("Failed test 1: RE is invalid");
+	if (RE::isValid("(this"))
+		throw runtime_error("Failed test 2: RE is valid");
+	if (RE::isValid("this)"))
+		throw runtime_error("Failed test 3: RE is valid");
+	if (RE::isValid("+this"))
+		throw runtime_error("Failed test 4: RE is valid");
+	if (RE::isValid("this+"))
+		throw runtime_error("Failed test 5: RE is valid");
+	if (RE::isValid("this+*"))
+		throw runtime_error("Failed test 6: RE is valid");
+	if (RE::isValid("this+*+"))
+		throw runtime_error("Failed test 7: RE is valid");
+	if (!RE::isValid("(m+y)*+(e+y+m+i)s"))
+		throw runtime_error("Failed test 8: RE is invalid");
+	if (RE::isValid("(m+y)*+e+y+m+i)s"))
+		throw runtime_error("Failed test 9: RE is valid");
+	if (RE::isValid("(m+y)*+(e+y+m+is"))
+		throw runtime_error("Failed test 10: RE is valid");
+}
+
+void testRE()
+{
+    RE re("(m+y)*+(e+y+m+i)s",'e');
+    ENFA enfa = re.toENFA();
+    enfa.printStats();
+
+    if (!enfa.accepts("ys"))
+    	throw runtime_error("Failed test : text is not accepted");
+    if (!enfa.accepts("mmyyymmmym"))
+    	throw runtime_error("Failed test : text is not accepted");
+    if (!enfa.accepts("s"))
+    	throw runtime_error("Failed test : text is not accepted");
+    if (enfa.accepts("ss"))
+    	throw runtime_error("Failed test : text is accepted");
+    if (enfa.accepts("ims"))
+    	throw runtime_error("Failed test : text is accepted");
+    if (enfa.accepts("mimis"))
+    	throw runtime_error("Failed test : text is accepted");
+}
+
 int main() {
 	testDFA();
 	testNFA();
 	testENFA();
 	testProduct();
+	testREisValid();
 
 	cout << "All tests passed" << endl;
 	return 0;
