@@ -14,6 +14,11 @@ NFA::NFA(const std::string &file_path) : FA("NFA")
 
 NFA::~NFA() = default;
 
+bool NFA::accepts(const std::string &string) const
+{
+	return toDFA().accepts(string);
+}
+
 DFA NFA::toDFA() const
 {
 	DFA dfa;
@@ -83,4 +88,3 @@ DFA NFA::toDFA() const
 
 	return dfa;
 }
-

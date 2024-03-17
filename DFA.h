@@ -21,7 +21,7 @@ public:
 	virtual ~DFA();
 
 	[[nodiscard]]
-	bool accepts(const std::string& string) const;
+	bool accepts(const std::string& string) const override;
 };
 
 

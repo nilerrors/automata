@@ -165,6 +165,8 @@ struct Transition
 	}
 };
 
+class DFA;
+
 class FA
 {
 public:
@@ -177,6 +179,9 @@ public:
 	void fromJSON(const json &j);
 
 	[[nodiscard]]
+	virtual bool accepts(const std::string &string) const = 0;
+
+	[[nodiscard]]
 	virtual json to_json() const;
 
 	[[nodiscard]]
@@ -184,26 +189,8 @@ public:
 
 	void print() const;
 
-	void addState(State *state)
-	{
-		for (const auto s : states)
-		{
-			if (s->name == state->name)
-				return;
-		}
-		states.insert(state);
-	}
-	void addTransition(Transition *transition)
-	{
-		for (const auto t : transitions)
-		{
-			if (t->from->name == transition->from->name
-				&& t->to->name == transition->to->name
-				&& t->symbol == transition->symbol)
-				return;
-		}
-		transitions.insert(transition);
-	}
+	void addState(State *state);
+	void addTransition(Transition *transition);
 
 	[[nodiscard]] const std::string &getType() const { return type; }
 	[[nodiscard]] const std::set<Symbol> &getAlphabet() const { return alphabet; }

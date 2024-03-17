@@ -12,14 +12,19 @@ FA::FA(const std::string &type)
 	FA::type = type;
 }
 
+FA::~FA()
+{
+	clear();
+}
+
 void FA::clear()
 {
 	alphabet.clear();
-	for (State *state : states)
+	for (const State *state : states)
 	{
 		delete state;
 	}
-	for (Transition *transition : transitions)
+	for (const Transition *transition : transitions)
 	{
 		delete transition;
 	}
@@ -68,9 +73,25 @@ void FA::fromJSON(const json &j)
 	validateTransitionsAndStore(j["transitions"]);
 }
 
-FA::~FA()
+void FA::addState(State *state)
 {
-	clear();
+	for (const auto s : states)
+	{
+		if (s->name == state->name)
+			return;
+	}
+	states.insert(state);
+}
+void FA::addTransition(Transition *transition)
+{
+	for (const auto t : transitions)
+	{
+		if (t->from->name == transition->from->name
+			&& t->to->name == transition->to->name
+			&& t->symbol == transition->symbol)
+			return;
+	}
+	transitions.insert(transition);
 }
 
 json FA::to_json() const

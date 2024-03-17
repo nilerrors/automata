@@ -5,7 +5,6 @@
 #ifndef ENFA_H
 #define ENFA_H
 
-#include "FA.h"
 #include "NFA.h"
 
 

@@ -19,6 +19,9 @@ public:
 
 	[[nodiscard]]
 	DFA toDFA() const;
+
+	[[nodiscard]]
+	bool accepts(const std::string &string) const override;
 };
 
 
