@@ -139,6 +139,41 @@ void FA::print() const
 	std::cout << std::setw(4) << to_json() << std::endl;
 }
 
+void FA::printStats() const
+{
+	std::cout << "no_of_states=" << states.size() << std::endl;
+
+	auto symbol_count = [&](const Symbol symbol) -> long {
+		return std::count_if(transitions.begin(), transitions.end(), [&symbol](const Transition *transition) {
+			return transition->symbol == symbol;
+		});
+	};
+
+	if (allowEpsilonTransitions)
+		std::cout << "no_of_transitions[" << epsilon << "]=" << symbol_count(epsilon) << std::endl;
+	for (const Symbol symbol : alphabet)
+	{
+		std::cout << "no_of_transitions[" << symbol << "]=" << symbol_count(symbol) << std::endl;
+	}
+
+	// the degree of a state is the number of transitions that go out of it
+	std::map<uint, uint> degrees;
+	for (const auto state : states)
+	{
+		uint degree = std::count_if(transitions.begin(), transitions.end(), [state](const Transition *transition) {
+			return transition->from == state;
+		});
+		if (degrees.find(degree) == degrees.end())
+			degrees[degree] = 0;
+		degrees[degree]++;
+	}
+
+	for (const auto& [degree, count] : degrees)
+	{
+		std::cout << "degree[" << degree << "]=" << count << std::endl;
+	}
+}
+
 
 void FA::validateAlphabetAndStore(const nlohmann::basic_json<> &alphabet_array)
 {

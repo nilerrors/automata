@@ -188,6 +188,7 @@ public:
 	virtual std::string to_dot() const;
 
 	void print() const;
+	void printStats() const;
 
 	void addState(State *state);
 	void addTransition(Transition *transition);
