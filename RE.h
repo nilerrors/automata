@@ -8,6 +8,33 @@
 #include "FA.h"
 
 
+enum RExpressionType
+{
+	EMPTY,					// empty,					∅
+
+	// RE A, RE S, Symbol a, Symbol b
+	CONCATENATION,			// regex concatenation,		R.S
+	UNION,					// regex union,				R+S
+	STAR,					// kleene star,				R*
+	SYMBOL,					// symbols,					a
+	EPSILON,				// epsilon,					ε
+};
+
+class RExpression
+{
+public:
+	RExpression(const std::string &regex, Symbol epsilon);
+	explicit RExpression(RExpressionType type) : type(type) {}
+	~RExpression();
+
+private:
+	RExpressionType type = EMPTY;
+	std::string value;
+	RExpression *left = nullptr;
+	RExpression *right = nullptr;
+};
+
+
 class RE
 {
 public:

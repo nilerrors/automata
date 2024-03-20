@@ -152,6 +152,15 @@ int main() {
 	testProduct();
 	testREisValid();
 
+	std::string regex = "(m+y)*+(e+y+m+i)s";
+	// std::string regex = "hal*o";
+
+	auto *expr = new RExpression(regex, 'e');
+
+	std::cout << expr << std::endl;
+
+	delete expr;
+
 	cout << "All tests passed" << endl;
 	return 0;
 }
