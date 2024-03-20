@@ -38,6 +38,12 @@ RExpression::RExpression(const std::string &regex, const Symbol epsilon)
 	const size_t len = regex.size();
 	std::deque<RExpression *> stack;
 
+	auto get_next_char = [&regex](size_t index) -> char {
+		if (index + 1 >= regex.size())
+			return '\0';
+		return regex[index + 1];
+	};
+
 	while (curidx < len)
 	{
 		char c = regex[curidx];
@@ -77,7 +83,6 @@ RExpression::RExpression(const std::string &regex, const Symbol epsilon)
 				auto *starexp = new RExpression(STAR);
 				starexp->value = self->value + "*";
 				starexp->left = self;
-				starexp->value = self->value;
 
 				if (stack.empty())
 				{
@@ -86,6 +91,7 @@ RExpression::RExpression(const std::string &regex, const Symbol epsilon)
 				else
 				{
 					RExpression *left = stack.front();
+					stack.pop_front();
 					if (left->type == EPSILON)
 						throw std::runtime_error("Can't concatenate with epsilon");
 
@@ -130,7 +136,7 @@ RExpression::RExpression(const std::string &regex, const Symbol epsilon)
 				auto *symexp = new RExpression(SYMBOL);
 				symexp->value = std::string(1, regex[curidx]);
 
-				if (stack.empty())
+				if (stack.empty() || get_next_char(curidx) == '*')
 					stack.push_front(symexp);
 				else
 				{
@@ -140,6 +146,7 @@ RExpression::RExpression(const std::string &regex, const Symbol epsilon)
 					RExpression *left = stack.front();
 					stack.pop_front();
 					auto *concatexpr = new RExpression(CONCATENATION);
+					concatexpr->value = left->value + symexp->value;
 					concatexpr->right = symexp;
 					concatexpr->left = left;
 					stack.push_front(concatexpr);
