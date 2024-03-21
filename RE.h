@@ -27,6 +27,8 @@ public:
 	explicit RExpression(RExpressionType type) : type(type) {}
 	~RExpression();
 
+	[[nodiscard]] ENFA *toENFA(Symbol epsilon) const;
+
 private:
 	RExpressionType type = EMPTY;
 	std::string value;
@@ -46,12 +48,10 @@ public:
 	static bool isValid(const std::string &regex);
 
 	static std::set<Symbol> getAlphabet(const std::string &regex, Symbol epsilon);
-	static ENFA epsilonToENFA(Symbol epsilon);
-	static ENFA symbolToENFA(Symbol symbol, Symbol epsilon);
 
 private:
-	Symbol epsilon;
 	std::string regex;
+	Symbol epsilon;
 };
 
 

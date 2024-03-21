@@ -20,13 +20,15 @@ FA::~FA()
 void FA::clear()
 {
 	alphabet.clear();
-	for (const State *state : states)
+	for (auto &state : states)
 	{
 		delete state;
+		state = nullptr;
 	}
-	for (const Transition *transition : transitions)
+	for (auto &transition : transitions)
 	{
 		delete transition;
+		transition = nullptr;
 	}
 
 	startingState = nullptr;
@@ -75,15 +77,23 @@ void FA::fromJSON(const json &j)
 
 void FA::addState(State *state)
 {
+	if (state->starting)
+	{
+		if (startingState != nullptr)
+			throw std::runtime_error("cannot have multiple instances of starting states");
+		startingState = state;
+	}
 	for (const auto s : states)
 	{
 		if (s->name == state->name)
 			return;
 	}
-	states.insert(state);
+	states.push_back(state);
 }
 void FA::addTransition(Transition *transition)
 {
+	if (transition == nullptr || transition->from == nullptr || transition->to == nullptr)
+		return;
 	for (const auto t : transitions)
 	{
 		if (t->from->name == transition->from->name
@@ -91,7 +101,7 @@ void FA::addTransition(Transition *transition)
 			&& t->symbol == transition->symbol)
 			return;
 	}
-	transitions.insert(transition);
+	transitions.push_back(transition);
 }
 
 json FA::to_json() const
@@ -115,32 +125,43 @@ json FA::to_json() const
 	return j;
 }
 
+void FA::to_json(const std::string &filename, bool format) const
+{
+	std::ofstream output_file(filename);
+	output_file << std::setw(format ? 4 : 0) << to_json() << std::endl;
+	output_file.close();
+}
+
+void FA::to_dot(const std::string &file) const
+{
+	std::ofstream output_file(file);
+	output_file << to_dot();
+	output_file.close();
+}
+
 std::string FA::to_dot() const
 {
 	std::string result = "digraph " + type + " {\n";
 	result += "  rankdir=LR;\n";
 	for (const auto &state : states)
 	{
-		result += "  " + state->name + " [shape=" + (state->accepting ? "doublecircle" : "circle") + "];\n";
+		result += "  \"" + state->name + "\" [shape=" + (state->accepting ? "doublecircle" : "circle") + "];\n";
 		if (state->starting)
-			result += "  start -> " + state->name + ";\n";
+			result += "  start -> \"" + state->name + "\";\n";
 	}
 	for (const auto &transition : transitions)
 	{
-		result += "  " + transition->from->name + " -> " + transition->to->name
-				+ " [label=\"" + transition->symbol + "\"];\n";
+		result += "  \"" + transition->from->name + "\" -> \"" + transition->to->name
+				+ "\" [label=\"" + transition->symbol + "\"];\n";
 	}
 	result += "}\n";
 	return result;
 }
 
-void FA::print() const
+std::string FA::to_stats() const
 {
-	std::cout << std::setw(4) << to_json() << std::endl;
-}
+	std::string stats;
 
-void FA::printStats() const
-{
 	auto symbol_count = [&](const Symbol symbol) -> long {
 		return std::count_if(transitions.begin(), transitions.end(), [&symbol](const Transition *transition) {
 			return transition->symbol == symbol;
@@ -168,20 +189,32 @@ void FA::printStats() const
 	std::sort(degrees_vector.begin(), degrees_vector.end());
 
 
-	std::cout << "no_of_states=" << states.size() << std::endl;
+	stats += "no_of_states=" + std::to_string(states.size()) + "\n";
 
 	if (allowEpsilonTransitions)
-		std::cout << "no_of_transitions[" << epsilon << "]=" << symbol_count(epsilon) << std::endl;
+		stats += "no_of_transitions[" + std::string(1, epsilon) + "]=" + std::to_string(symbol_count(epsilon)) + "\n";
 
 	for (const Symbol symbol : alphabet_symbols)
 	{
-		std::cout << "no_of_transitions[" << symbol << "]=" << symbol_count(symbol) << std::endl;
+		stats += "no_of_transitions[" + std::string(1, symbol) + "]=" + std::to_string(symbol_count(symbol)) + "\n";
 	}
 
 	for (const auto& degree : degrees_vector)
 	{
-		std::cout << "degree[" << degree << "]=" << degrees[degree] << std::endl;
+		stats += "degree[" + std::to_string(degree) + "]=" + std::to_string(degrees[degree]) + "\n";
 	}
+
+	return stats;
+}
+
+void FA::print() const
+{
+	std::cout << std::setw(4) << to_json() << std::endl;
+}
+
+void FA::printStats() const
+{
+	std::cout << to_stats();
 }
 
 
@@ -222,14 +255,6 @@ void FA::validateStatesAndStore(const nlohmann::basic_json<> &states_array)
 				state["starting"].get<bool>(),
 				state["accepting"].get<bool>());
 		addState(new_state);
-
-		if (new_state->starting)
-		{
-			if (startingState != nullptr)
-				throw std::runtime_error("cannot have multiple instances of starting states");
-
-			startingState = new_state;
-		}
 	}
 
 	if (startingState == nullptr)
@@ -277,6 +302,39 @@ void FA::validateTransitionsAndStore(const nlohmann::basic_json<> &transitions_a
 	}
 }
 
+
+std::vector<State *> FA::getAcceptingStates() const
+{
+	std::vector<State *> acceptStates;
+	for (auto state : states)
+	{
+		if (state->accepting)
+			acceptStates.push_back(state);
+	}
+	return acceptStates;
+}
+
+std::vector<Transition *> FA::getTransitionsFromState(const State *state) const
+{
+	std::vector<Transition *> transitionFromState;
+	for (const auto transition : transitions)
+	{
+		if (transition->from == state)
+			transitionFromState.push_back(transition);
+	}
+	return transitionFromState;
+}
+
+std::vector<Transition *> FA::getTransitionsToState(const State *state) const
+{
+	std::vector<Transition *> transitionFromState;
+	for (const auto transition : transitions)
+	{
+		if (transition->to == state)
+			transitionFromState.push_back(transition);
+	}
+	return transitionFromState;
+}
 
 State *FA::getState(const std::string &name) const
 {

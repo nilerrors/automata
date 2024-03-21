@@ -5,6 +5,7 @@
 #include "RE.h"
 
 #include <deque>
+#include <iostream>
 #include <stack>
 #include <utility>
 
@@ -13,6 +14,8 @@ RExpression::RExpression(const std::string &regex, const Symbol epsilon)
 {
 	if (!RE::isValid(regex))
 		throw std::runtime_error("Invalid regex");
+
+	value = regex;
 
 	if (regex.empty())
 	{
@@ -24,35 +27,23 @@ RExpression::RExpression(const std::string &regex, const Symbol epsilon)
 		if (regex[0] == epsilon)
 		{
 			type = EPSILON;
-			value = epsilon;
 			return;
 		}
 		type = SYMBOL;
-		value = regex;
 		return;
 	}
 
-	value = regex;
-
 	size_t curidx = 0;
 	const size_t len = regex.size();
-	std::deque<RExpression *> stack;
-
-	auto get_next_char = [&regex](size_t index) -> char {
-		if (index + 1 >= regex.size())
-			return '\0';
-		return regex[index + 1];
-	};
+	std::stack<RExpression *> stack;
 
 	while (curidx < len)
 	{
-		char c = regex[curidx];
-
-		switch (c)
+		switch (regex[curidx])
 		{
 			case '(':
 			{
-				size_t start = curidx;
+				const size_t start = curidx;
 				size_t end = start + 1;
 				std::string sub;
 				int count = 1;
@@ -69,29 +60,41 @@ RExpression::RExpression(const std::string &regex, const Symbol epsilon)
 				}
 
 				auto *subexp = new RExpression(sub, epsilon);
-				subexp->value = "(" + sub + ")";
-				stack.push_front(subexp);
+				if (stack.empty() || (end < len && regex.at(end) == '*'))
+				{
+					stack.push(subexp);
+				}
+				else
+				{
+					RExpression *left = stack.top();
+					stack.pop();
+					auto *concatexpr = new RExpression(CONCATENATION);
+					concatexpr->value = left->value + subexp->value;
+					concatexpr->left = left;
+					concatexpr->right = subexp;
+					stack.push(concatexpr);
+				}
 
 				curidx = end;
 				break;
 			}
 			case '*':
 			{
-				RExpression *self = stack.front();
-				stack.pop_front();
+				RExpression *self = stack.top();
+				stack.pop();
 
 				auto *starexp = new RExpression(STAR);
-				starexp->value = self->value + "*";
+				starexp->value = self->value;
 				starexp->left = self;
 
 				if (stack.empty())
 				{
-					stack.push_front(starexp);
+					stack.push(starexp);
 				}
 				else
 				{
-					RExpression *left = stack.front();
-					stack.pop_front();
+					RExpression *left = stack.top();
+					stack.pop();
 					if (left->type == EPSILON)
 						throw std::runtime_error("Can't concatenate with epsilon");
 
@@ -99,8 +102,7 @@ RExpression::RExpression(const std::string &regex, const Symbol epsilon)
 					concatexp->value = left->value + starexp->value;
 					concatexp->left = left;
 					concatexp->right = starexp;
-					stack.front();
-					stack.push_front(concatexp);
+					stack.push(concatexp);
 				}
 
 				curidx++;
@@ -112,8 +114,8 @@ RExpression::RExpression(const std::string &regex, const Symbol epsilon)
 				// this will be the operation for the whole regex
 
 				type = UNION;
-				left = stack.front();
-				stack.pop_front();
+				left = stack.top();
+				stack.pop();
 				right = new RExpression(regex.substr(curidx + 1), epsilon);
 
 				curidx = len;
@@ -121,14 +123,14 @@ RExpression::RExpression(const std::string &regex, const Symbol epsilon)
 			}
 			default:
 			{
-				if (c == epsilon)
+				if (regex[curidx] == epsilon)
 				{
 					auto *epsilonexp = new RExpression(EPSILON);
 					if (!stack.empty())
 					{
 						throw std::runtime_error("Can't concatenate with epsilon");
 					}
-					stack.push_front(epsilonexp);
+					stack.push(epsilonexp);
 					curidx++;
 					break;
 				}
@@ -136,20 +138,20 @@ RExpression::RExpression(const std::string &regex, const Symbol epsilon)
 				auto *symexp = new RExpression(SYMBOL);
 				symexp->value = std::string(1, regex[curidx]);
 
-				if (stack.empty() || get_next_char(curidx) == '*')
-					stack.push_front(symexp);
+				if (stack.empty() || regex.at(curidx) == '*')
+					stack.push(symexp);
 				else
 				{
-					if (stack.front()->type == EPSILON)
+					if (stack.top()->type == EPSILON)
 						throw std::runtime_error("Can't concatenate with epsilon");
 
-					RExpression *left = stack.front();
-					stack.pop_front();
+					RExpression *left = stack.top();
+					stack.pop();
 					auto *concatexpr = new RExpression(CONCATENATION);
 					concatexpr->value = left->value + symexp->value;
 					concatexpr->right = symexp;
 					concatexpr->left = left;
-					stack.push_front(concatexpr);
+					stack.push(concatexpr);
 				}
 
 				curidx++;
@@ -172,12 +174,12 @@ RExpression::RExpression(const std::string &regex, const Symbol epsilon)
 		//		- symbol
 		//		- star
 		//		- a single concatenation
-		RExpression *top = stack.front();
+		const RExpression *top = stack.top();
 		type = top->type;
 		value = regex;
 		left = top->left;
 		right = top->right;
-		stack.pop_front();
+		stack.pop();
 	}
 	else
 		throw std::runtime_error("Invalid regex");
@@ -186,7 +188,77 @@ RExpression::RExpression(const std::string &regex, const Symbol epsilon)
 RExpression::~RExpression()
 {
 	delete left;
+	left = nullptr;
 	delete right;
+	right = nullptr;
+}
+
+ENFA *RExpression::toENFA(const Symbol epsilon) const
+{
+	switch (type)
+	{
+		case EMPTY:
+		{
+			ENFA *enfa = new ENFA();
+			enfa->setEpsilon(epsilon);
+			enfa->setAlphabet({});
+			return enfa;
+		}
+		case EPSILON:
+		{
+			ENFA *enfa = new ENFA();
+			enfa->setEpsilon(epsilon);
+			enfa->setAlphabet({});
+			auto *start = new State("startend", true, true);
+			enfa->addState(start);
+			return enfa;
+		}
+		case SYMBOL:
+		{
+			ENFA *enfa = new ENFA();
+			enfa->setEpsilon(epsilon);
+			enfa->setAlphabet({ value.front() });
+			auto *start = new State("start", true, false);
+			auto *end = new State("end", false, true);
+			enfa->addState(start);
+			enfa->addState(end);
+			enfa->addTransition(new Transition(start, end, value.front()));
+			return enfa;
+		}
+		case STAR:
+		{
+			if (left == nullptr)
+				throw std::runtime_error("Invalid regex");
+			ENFA *enfa = new ENFA();
+			ENFA *in_star = left->toENFA(epsilon);
+			ENFA::star(enfa, in_star);
+			return enfa;
+		}
+		case UNION:
+		{
+			if (left == nullptr || right == nullptr)
+				throw std::runtime_error("Invalid regex");
+			ENFA *enfa = new ENFA();
+			ENFA *left = this->left->toENFA(epsilon);
+			ENFA *right = this->right->toENFA(epsilon);
+			ENFA::join(enfa, left, right);
+			return enfa;
+		}
+		case CONCATENATION:
+		{
+			if (left == nullptr || right == nullptr)
+				throw std::runtime_error("Invalid regex");
+			ENFA *enfa = new ENFA();
+			ENFA *left = this->left->toENFA(epsilon);
+			left->optimizeAccept();
+			ENFA *right = this->right->toENFA(epsilon);
+			right->optimizeAccept();
+			ENFA::link(enfa, left, right);
+			return enfa;
+		}
+		default:
+			throw std::runtime_error("Invalid regex");
+	}
 }
 
 // Throws an exception if the regex is invalid
@@ -204,8 +276,11 @@ ENFA RE::toENFA() const
 	enfa.setEpsilon(epsilon);
 	enfa.setAlphabet(getAlphabet(regex, epsilon));
 
-	// TODO: Conversion from regex to ENFA
+	RExpression re = RExpression(regex, epsilon);
 
+	ENFA *temp = re.toENFA(epsilon);
+	temp->optimizeAccept();
+	enfa = *temp;
 	return enfa;
 }
 
@@ -232,13 +307,13 @@ bool RE::isValid(const std::string &regex)
 		return final_string[final_string.size() - 1];
 	};
 
-	auto get_next_char = [&regex](size_t index) -> char {
+	auto get_next_char = [&regex](const size_t index) -> char {
 		if (index >= regex.size())
 			return '\0';
 		return regex[index];
 	};
 
-	for (char c : regex)
+	for (const char c : regex)
 	{
 		switch (c)
 		{

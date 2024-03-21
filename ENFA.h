@@ -15,12 +15,15 @@ public:
 	explicit ENFA(const std::string &file_path);
 	virtual ~ENFA();
 
+	void optimizeStart();
+	void optimizeAccept();
+
 	// union
-	[[nodiscard]] static ENFA join(const ENFA &first, const ENFA &second);
+	static void join(ENFA *into, ENFA const *first, ENFA const *second);
 	// concatenation
-	[[nodiscard]] static ENFA link(const ENFA &first, const ENFA &second);
+	static void link(ENFA *into, ENFA const *first, ENFA const *second);
 	// kleene star
-	[[nodiscard]] static ENFA star(const ENFA &enfa);
+	static void star(ENFA *into, ENFA const *enfa);
 };
 
 

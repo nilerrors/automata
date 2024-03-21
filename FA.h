@@ -7,6 +7,7 @@
 
 #include <string>
 #include <set>
+#include <utility>
 #include "json.hpp"
 
 using json = nlohmann::json;
@@ -27,12 +28,8 @@ struct State
 		accepting = false;
 	}
 
-	State(const std::string &name, const bool isBegin, const bool isEnd)
-	{
-		State::name = name;
-		starting = isBegin;
-		accepting = isEnd;
-	}
+	State(std::string name, const bool isBegin, const bool isEnd)
+		: name(std::move(name)), starting(isBegin), accepting(isEnd) {}
 
 	[[nodiscard]]
 	json to_json() const
@@ -183,9 +180,14 @@ public:
 
 	[[nodiscard]]
 	virtual json to_json() const;
+	void to_json(const std::string &filename, bool format = true) const;
 
 	[[nodiscard]]
 	virtual std::string to_dot() const;
+	void to_dot(const std::string &file) const;
+
+	[[nodiscard]]
+	virtual  std::string to_stats() const;
 
 	void print() const;
 	void printStats() const;
@@ -197,8 +199,11 @@ public:
 	[[nodiscard]] const std::set<Symbol> &getAlphabet() const { return alphabet; }
 	[[nodiscard]] State *getStartingState() const { return startingState; }
 	[[nodiscard]] SetOfStates* getStartingStates() const { return e_closure(startingState, new SetOfStates({}, true)); }
-	[[nodiscard]] const std::set<State *> &getStates() const { return states; }
-	[[nodiscard]] const std::set<Transition *> &getTransitions() const { return transitions; }
+	[[nodiscard]] std::vector<State *> getAcceptingStates() const;
+	[[nodiscard]] const std::vector<State *> &getStates() const { return states; }
+	[[nodiscard]] const std::vector<Transition *> &getTransitions() const { return transitions; }
+	[[nodiscard]] std::vector<Transition *> getTransitionsFromState(const State *state) const;
+	[[nodiscard]] std::vector<Transition *> getTransitionsToState(const State *state) const;
 
 	[[nodiscard]] State *getState(const std::string &name) const;
 	[[nodiscard]] State *getNextState(const State *from, Symbol symbol) const;
@@ -218,8 +223,8 @@ protected:
 protected:
 	std::string type;
 	std::set<Symbol> alphabet;
-	std::set<State *> states;
-	std::set<Transition *> transitions;
+	std::vector<State *> states;
+	std::vector<Transition *> transitions;
 	State * startingState = nullptr;
 
 	bool allowEpsilonTransitions = false;
