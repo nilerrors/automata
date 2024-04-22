@@ -13,4 +13,6 @@ add_executable(Automata main.cpp
         ENFA.cpp
         ENFA.h
         RE.cpp
-        RE.h)
+        RE.h
+        StatesTable.cpp
+        StatesTable.h)

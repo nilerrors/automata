@@ -12,18 +12,19 @@
 class NFA : public FA
 {
 public:
-	NFA();
-	[[maybe_unused]]
-	explicit NFA(const std::string &file_path);
-	virtual ~NFA();
+    NFA();
 
-	[[nodiscard]]
-	DFA toDFA() const;
+    [[maybe_unused]]
+    explicit NFA(const std::string &file_path);
 
-	[[nodiscard]]
-	bool accepts(const std::string &string) const override;
+    virtual ~NFA();
+
+    [[nodiscard]]
+    DFA toDFA() const;
+
+    [[nodiscard]]
+    bool accepts(const std::string &string) const override;
 };
-
 
 
 #endif //NFA_H

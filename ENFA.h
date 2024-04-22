@@ -11,19 +11,24 @@
 class ENFA : public NFA
 {
 public:
-	ENFA();
-	explicit ENFA(const std::string &file_path);
-	virtual ~ENFA();
+    ENFA();
 
-	void optimizeStart();
-	void optimizeAccept();
+    explicit ENFA(const std::string &file_path);
 
-	// union
-	static void join(ENFA *into, ENFA const *first, ENFA const *second);
-	// concatenation
-	static void link(ENFA *into, ENFA const *first, ENFA const *second);
-	// kleene star
-	static void star(ENFA *into, ENFA const *enfa);
+    virtual ~ENFA();
+
+    void optimizeStart();
+
+    void optimizeAccept();
+
+    // union
+    static void join(ENFA *into, ENFA const *first, ENFA const *second);
+
+    // concatenation
+    static void link(ENFA *into, ENFA const *first, ENFA const *second);
+
+    // kleene star
+    static void star(ENFA *into, ENFA const *enfa);
 };
 
 

@@ -9,19 +9,26 @@
 #include "json.hpp"
 
 #include "FA.h"
+#include "StatesTable.h"
 
 
 class DFA : public FA
 {
 public:
-	DFA();
-	[[maybe_unused]]
-	explicit DFA(const std::string &file_path);
-	explicit DFA(const DFA &first, const DFA &second, bool isIntersection);
-	virtual ~DFA();
+    DFA();
 
-	[[nodiscard]]
-	bool accepts(const std::string& string) const override;
+    [[maybe_unused]]
+    explicit DFA(const std::string &file_path);
+
+    explicit DFA(const DFA &first, const DFA &second, bool isIntersection);
+
+    virtual ~DFA();
+
+    [[nodiscard]]
+    bool accepts(const std::string &string) const override;
+
+    [[nodiscard]]
+    StatesTable get_table() const;
 };
 
 
