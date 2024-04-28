@@ -42,7 +42,5 @@ This project is a simple implementation of the following:
 
 
 ## Plans
-- Optimize the conversion of RE to ε-NFA
-  - Refactor code to avoid memory leaks
-- Convert a DFA to its corresponding RE using the state elimination
-- Minimize the DFA using the table-filling algorithm
+-[ ] Convert a DFA to its corresponding RE using the state elimination
+-[ ] ^ Minimize the DFA using the table-filling algorithm
