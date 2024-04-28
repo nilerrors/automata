@@ -37,7 +37,7 @@ RExpression::RExpression(const std::string &regex, const Symbol epsilon)
 
     size_t curidx = 0;
     const size_t len = regex.size();
-    std::stack<RExpression *> stack;
+    std::stack<std::shared_ptr<RExpression>> stack;
 
     while (curidx < len)
     {
@@ -67,16 +67,16 @@ RExpression::RExpression(const std::string &regex, const Symbol epsilon)
                 end++;
             }
 
-            auto *subexp = new RExpression(sub, epsilon);
+            std::shared_ptr<RExpression> subexp = std::make_shared<RExpression>(sub, epsilon);
             if (stack.empty() || (end < len && regex.at(end) == '*'))
             {
                 stack.push(subexp);
             }
             else
             {
-                RExpression *left = stack.top();
+                std::shared_ptr<RExpression> left = stack.top();
                 stack.pop();
-                auto *concatexpr = new RExpression(CONCATENATION);
+                std::shared_ptr<RExpression> concatexpr = std::make_shared<RExpression>(CONCATENATION);
                 concatexpr->value = left->value + subexp->value;
                 concatexpr->left = left;
                 concatexpr->right = subexp;
@@ -88,10 +88,10 @@ RExpression::RExpression(const std::string &regex, const Symbol epsilon)
         }
         case '*':
         {
-            RExpression *self = stack.top();
+            std::shared_ptr<RExpression> self = stack.top();
             stack.pop();
 
-            auto *starexp = new RExpression(STAR);
+            std::shared_ptr<RExpression> starexp = std::make_shared<RExpression>(STAR);
             starexp->value = self->value;
             starexp->left = self;
 
@@ -101,14 +101,14 @@ RExpression::RExpression(const std::string &regex, const Symbol epsilon)
             }
             else
             {
-                RExpression *left = stack.top();
+                std::shared_ptr<RExpression> left = stack.top();
                 stack.pop();
                 if (left->type == EPSILON)
                 {
                     throw std::runtime_error("Can't concatenate with epsilon");
                 }
 
-                auto *concatexp = new RExpression(CONCATENATION);
+                std::shared_ptr<RExpression> concatexp = std::make_shared<RExpression>(CONCATENATION);
                 concatexp->value = left->value + starexp->value;
                 concatexp->left = left;
                 concatexp->right = starexp;
@@ -126,7 +126,7 @@ RExpression::RExpression(const std::string &regex, const Symbol epsilon)
             type = UNION;
             left = stack.top();
             stack.pop();
-            right = new RExpression(regex.substr(curidx + 1), epsilon);
+            right = std::make_shared<RExpression>(regex.substr(curidx + 1), epsilon);
 
             curidx = len;
             break;
@@ -135,7 +135,7 @@ RExpression::RExpression(const std::string &regex, const Symbol epsilon)
         {
             if (regex[curidx] == epsilon)
             {
-                auto *epsilonexp = new RExpression(EPSILON);
+                std::shared_ptr<RExpression> epsilonexp = std::make_shared<RExpression>(EPSILON);
                 if (!stack.empty())
                 {
                     throw std::runtime_error("Can't concatenate with epsilon");
@@ -145,7 +145,7 @@ RExpression::RExpression(const std::string &regex, const Symbol epsilon)
                 break;
             }
 
-            auto *symexp = new RExpression(SYMBOL);
+            std::shared_ptr<RExpression> symexp = std::make_shared<RExpression>(SYMBOL);
             symexp->value = std::string(1, regex[curidx]);
 
             if (stack.empty() || regex.at(curidx) == '*')
@@ -159,9 +159,9 @@ RExpression::RExpression(const std::string &regex, const Symbol epsilon)
                     throw std::runtime_error("Can't concatenate with epsilon");
                 }
 
-                RExpression *left = stack.top();
+                std::shared_ptr<RExpression> left = stack.top();
                 stack.pop();
-                auto *concatexpr = new RExpression(CONCATENATION);
+                std::shared_ptr<RExpression> concatexpr = std::make_shared<RExpression>(CONCATENATION);
                 concatexpr->value = left->value + symexp->value;
                 concatexpr->right = symexp;
                 concatexpr->left = left;
@@ -190,7 +190,7 @@ RExpression::RExpression(const std::string &regex, const Symbol epsilon)
         //		- symbol
         //		- star
         //		- a single concatenation
-        const RExpression *top = stack.top();
+        const std::shared_ptr<RExpression> top = stack.top();
         type = top->type;
         value = regex;
         left = top->left;
@@ -203,44 +203,38 @@ RExpression::RExpression(const std::string &regex, const Symbol epsilon)
     }
 }
 
-RExpression::~RExpression()
-{
-    delete left;
-    left = nullptr;
-    delete right;
-    right = nullptr;
-}
+RExpression::~RExpression() = default;
 
-ENFA *RExpression::toENFA(const Symbol epsilon) const
+std::shared_ptr<ENFA> RExpression::toENFA(const Symbol epsilon) const
 {
     switch (type)
     {
     case EMPTY:
     {
-        ENFA *enfa = new ENFA();
+        std::shared_ptr<ENFA> enfa = std::make_shared<ENFA>();
         enfa->setEpsilon(epsilon);
         enfa->setAlphabet({});
         return enfa;
     }
     case EPSILON:
     {
-        ENFA *enfa = new ENFA();
+        std::shared_ptr<ENFA> enfa = std::make_shared<ENFA>();
         enfa->setEpsilon(epsilon);
         enfa->setAlphabet({});
-        auto *start = new State("startend", true, true);
+        std::shared_ptr<State> start = std::make_shared<State>("startend", true, true);
         enfa->addState(start);
         return enfa;
     }
     case SYMBOL:
     {
-        ENFA *enfa = new ENFA();
+        std::shared_ptr<ENFA> enfa = std::make_shared<ENFA>();
         enfa->setEpsilon(epsilon);
         enfa->setAlphabet({value.front()});
-        auto *start = new State("start", true, false);
-        auto *end = new State("end", false, true);
+        std::shared_ptr<State> start = std::make_shared<State>("start", true, false);
+        std::shared_ptr<State> end = std::make_shared<State>("end", false, true);
         enfa->addState(start);
         enfa->addState(end);
-        enfa->addTransition(new Transition(start, end, value.front()));
+        enfa->addTransition(std::make_shared<Transition>(start, end, value.front()));
         return enfa;
     }
     case STAR:
@@ -249,8 +243,8 @@ ENFA *RExpression::toENFA(const Symbol epsilon) const
         {
             throw std::runtime_error("Invalid regex");
         }
-        ENFA *enfa = new ENFA();
-        ENFA *in_star = left->toENFA(epsilon);
+        std::shared_ptr<ENFA> enfa = std::make_unique<ENFA>();
+        std::shared_ptr<ENFA> in_star = left->toENFA(epsilon);
         ENFA::star(enfa, in_star);
         return enfa;
     }
@@ -260,9 +254,9 @@ ENFA *RExpression::toENFA(const Symbol epsilon) const
         {
             throw std::runtime_error("Invalid regex");
         }
-        ENFA *enfa = new ENFA();
-        ENFA *left = this->left->toENFA(epsilon);
-        ENFA *right = this->right->toENFA(epsilon);
+        std::shared_ptr<ENFA> enfa = std::make_shared<ENFA>();
+        std::shared_ptr<ENFA> left = this->left->toENFA(epsilon);
+        std::shared_ptr<ENFA> right = this->right->toENFA(epsilon);
         ENFA::join(enfa, left, right);
         return enfa;
     }
@@ -272,10 +266,10 @@ ENFA *RExpression::toENFA(const Symbol epsilon) const
         {
             throw std::runtime_error("Invalid regex");
         }
-        ENFA *enfa = new ENFA();
-        ENFA *left = this->left->toENFA(epsilon);
+        std::shared_ptr<ENFA> enfa = std::make_shared<ENFA>();
+        std::shared_ptr<ENFA> left = this->left->toENFA(epsilon);
         left->optimizeAccept();
-        ENFA *right = this->right->toENFA(epsilon);
+        std::shared_ptr<ENFA> right = this->right->toENFA(epsilon);
         right->optimizeAccept();
         ENFA::link(enfa, left, right);
         return enfa;
@@ -304,7 +298,7 @@ ENFA RE::toENFA() const
 
     RExpression re = RExpression(regex, epsilon);
 
-    ENFA *temp = re.toENFA(epsilon);
+    std::shared_ptr<ENFA> temp = re.toENFA(epsilon);
     temp->optimizeAccept();
     enfa = *temp;
     return enfa;

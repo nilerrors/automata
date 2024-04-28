@@ -48,32 +48,36 @@ struct State
 
 struct SetOfStates
 {
-    std::set<State *> states;
-    State *state = nullptr;
+    std::set<std::shared_ptr<State>> states;
+    std::shared_ptr<State> state = nullptr;
     bool isStarting = false;
 
-    explicit SetOfStates(const std::set<State *> &states, const bool starting = false)
+    explicit SetOfStates(const bool starting = false) : states({}), isStarting(starting)
+    {
+    }
+
+    explicit SetOfStates(const std::set<std::shared_ptr<State>> &states, const bool starting = false)
             : states(states), isStarting(starting)
     {
     }
 
-    void add(State *state)
+    void add(const std::shared_ptr<State> &s)
     {
-        states.insert(state);
+        states.insert(s);
     }
 
-    void add(const SetOfStates *set)
+    void add(const std::shared_ptr<SetOfStates> &set)
     {
         states.insert(set->states.begin(), set->states.end());
     }
 
-    State *to_state()
+    std::shared_ptr<State> to_state()
     {
         if (state != nullptr)
         {
             return state;
         }
-        state = new State();
+        state = std::make_shared<State>();
         state->name = to_string();
         state->starting = isStarting;
         state->accepting = isAccepting();
@@ -86,7 +90,7 @@ struct SetOfStates
         return std::any_of(
                 states.begin(),
                 states.end(),
-                [](const State *state) { return state->accepting; });
+                [](const std::shared_ptr<State> &s) -> bool { return s->accepting; });
     }
 
     [[nodiscard]]
@@ -95,12 +99,12 @@ struct SetOfStates
         std::string result = "{";
         std::vector<std::string> all_names;
         all_names.reserve(states.size());
-        for (const auto state: states)
+        for (const std::shared_ptr<State> &s: states)
         {
-            all_names.push_back(state->name);
+            all_names.push_back(s->name);
         }
         std::sort(all_names.begin(), all_names.end());
-        for (auto &name: all_names)
+        for (const std::string &name: all_names)
         {
             if (name != all_names.front())
             {
@@ -115,8 +119,8 @@ struct SetOfStates
 
 struct PairOfStates
 {
-    std::pair<State *, State *> states;
-    State *state = nullptr;
+    std::pair<std::shared_ptr<State>, std::shared_ptr<State>> states;
+    std::shared_ptr<State> state = nullptr;
     bool isStarting = false;
     bool isAccepting = false;
 
@@ -124,19 +128,20 @@ struct PairOfStates
     {
     }
 
-    PairOfStates(State *first, State *second, const bool start, const bool end)
+    PairOfStates(const std::shared_ptr<State> &first, const std::shared_ptr<State> &second, const bool start,
+                 const bool end)
             : states({first, second}), isStarting(start), isAccepting(end)
     {
     }
 
     [[nodiscard]]
-    State *to_state()
+    std::shared_ptr<State> to_state()
     {
         if (state != nullptr)
         {
             return state;
         }
-        state = new State();
+        state = std::make_shared<State>();
         state->name = to_string();
         state->starting = isStarting;
         state->accepting = isAccepting;
@@ -152,22 +157,22 @@ struct PairOfStates
 
 struct Transition
 {
-    State *from;
-    State *to;
+    std::shared_ptr<State> from;
+    std::shared_ptr<State> to;
     Symbol symbol;
 
-    Transition(State *from, State *to, const Symbol symbol)
+    Transition(const std::shared_ptr<State> &f, const std::shared_ptr<State> &t, const Symbol sym)
     {
-        Transition::from = from;
-        Transition::to = to;
-        Transition::symbol = symbol;
+        from = f;
+        to = t;
+        symbol = sym;
     }
 
-    Transition(State *from, State *to, const std::string &symbol)
+    Transition(const std::shared_ptr<State> &f, const std::shared_ptr<State> &t, const std::string &sym)
     {
-        Transition::from = from;
-        Transition::to = to;
-        Transition::symbol = symbol.front();
+        from = f;
+        to = t;
+        symbol = sym.front();
     }
 
     [[nodiscard]]
@@ -196,13 +201,13 @@ public:
 
     void fromPath(const std::string &file_path);
 
-    void fromJSON(const json &j);
+    void fromJSON(const nlohmann::json &j);
 
     [[nodiscard]]
     virtual bool accepts(const std::string &string) const = 0;
 
     [[nodiscard]]
-    virtual json to_json() const;
+    virtual nlohmann::json to_json() const;
 
     void to_json(const std::string &filename, bool format = true) const;
 
@@ -218,78 +223,69 @@ public:
 
     void printStats() const;
 
-    void addState(State *state);
+    void addState(const std::shared_ptr<State> &state);
 
-    void addTransition(Transition *transition);
+    void addTransition(const std::shared_ptr<Transition> &transition);
 
-    [[nodiscard]] const std::string &getType() const
-    {
-        return type;
-    }
+    [[nodiscard]]
+    const std::string &getType() const;
 
-    [[nodiscard]] const std::set<Symbol> &getAlphabet() const
-    {
-        return alphabet;
-    }
+    [[nodiscard]]
+    const std::set<Symbol> &getAlphabet() const;
 
-    [[nodiscard]] State *getStartingState() const
-    {
-        return startingState;
-    }
+    [[nodiscard]]
+    Symbol getEpsilon() const;
 
-    [[nodiscard]] SetOfStates *getStartingStates() const
-    {
-        return e_closure(startingState, new SetOfStates({}, true));
-    }
+    void setAlphabet(const std::set<Symbol> &alphabet);
 
-    [[nodiscard]] std::vector<State *> getAcceptingStates() const;
+    void setEpsilon(Symbol epsilon);
 
-    [[nodiscard]] const std::vector<State *> &getStates() const
-    {
-        return states;
-    }
+    [[nodiscard]]
+    std::shared_ptr<State> getStartingState() const;
 
-    [[nodiscard]] const std::vector<Transition *> &getTransitions() const
-    {
-        return transitions;
-    }
+    [[nodiscard]]
+    std::shared_ptr<SetOfStates> getStartingStates() const;
 
-    [[nodiscard]] std::vector<Transition *> getTransitionsFromState(const State *state) const;
+    [[nodiscard]]
+    std::vector<std::shared_ptr<State>> getAcceptingStates() const;
 
-    [[nodiscard]] std::vector<Transition *> getTransitionsToState(const State *state) const;
+    [[nodiscard]]
+    const std::vector<std::shared_ptr<State>> &getStates() const;
 
-    [[nodiscard]] State *getState(const std::string &name) const;
+    [[nodiscard]]
+    const std::vector<std::shared_ptr<Transition>> &getTransitions() const;
 
-    [[nodiscard]] State *getNextState(const State *from, Symbol symbol) const;
+    [[nodiscard]]
+    std::vector<std::shared_ptr<Transition>> getTransitionsFromState(const std::shared_ptr<State> &state) const;
 
-    [[nodiscard]] SetOfStates *getNextStates(const SetOfStates *from, Symbol symbol) const;
+    [[nodiscard]]
+    std::vector<std::shared_ptr<Transition>> getTransitionsToState(const std::shared_ptr<State> &state) const;
+
+    [[nodiscard]]
+    std::shared_ptr<State> getState(const std::string &name) const;
+
+    [[nodiscard]]
+    std::shared_ptr<State> getNextState(const std::shared_ptr<State> &from, Symbol symbol) const;
+
+    [[nodiscard]]
+    std::shared_ptr<SetOfStates> getNextStates(const std::shared_ptr<SetOfStates> &from, Symbol symbol) const;
 
     // modifies the given set of states
-    SetOfStates *e_closure(State *state, SetOfStates *states) const;
-
-    void setAlphabet(const std::set<Symbol> &alphabet)
-    {
-        FA::alphabet = alphabet;
-    }
-
-    void setEpsilon(const Symbol epsilon)
-    {
-        FA::epsilon = epsilon;
-    }
+    std::shared_ptr<SetOfStates> e_closure(const std::shared_ptr<State> &state, const std::shared_ptr<SetOfStates> &states) const;
 
 protected:
-    void validateAlphabetAndStore(const nlohmann::basic_json<> &alphabet_array);
+    void validateAlphabetAndStore(const nlohmann::json &alphabet_array);
 
-    void validateStatesAndStore(const nlohmann::basic_json<> &states_array);
+    void validateStatesAndStore(const nlohmann::json &states_array);
 
-    void validateTransitionsAndStore(const nlohmann::basic_json<> &transitions_array);
+    void validateTransitionsAndStore(const nlohmann::json &transitions_array);
 
 protected:
     std::string type;
     std::set<Symbol> alphabet;
-    std::vector<State *> states;
-    std::vector<Transition *> transitions;
-    State *startingState = nullptr;
+    std::vector<std::shared_ptr<State>> states;
+    std::vector<std::shared_ptr<Transition>> transitions;
+    std::shared_ptr<State> startingState = nullptr;
 
     bool allowEpsilonTransitions = false;
     // if epsilon is not used, it will be '\0'

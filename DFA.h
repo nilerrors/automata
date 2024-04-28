@@ -22,13 +22,23 @@ public:
 
     explicit DFA(const DFA &first, const DFA &second, bool isIntersection);
 
-    virtual ~DFA();
+    ~DFA() override;
 
     [[nodiscard]]
     bool accepts(const std::string &string) const override;
 
     [[nodiscard]]
-    StatesTable get_table() const;
+    std::shared_ptr<Transition>
+    getTransitionFromStateBySymbol(const std::shared_ptr<State> &state, Symbol symbol) const;
+
+    [[nodiscard]]
+    DFA minimize() const;
+
+    void printTable() const;
+
+private:
+    bool minimized = false;
+    std::shared_ptr<StatesTable> table = nullptr;
 };
 
 

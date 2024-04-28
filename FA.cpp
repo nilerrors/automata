@@ -12,25 +12,13 @@ FA::FA(const std::string &type)
     FA::type = type;
 }
 
-FA::~FA()
-{
-    clear();
-}
+FA::~FA() = default;
 
 void FA::clear()
 {
     alphabet.clear();
-    for (auto &state: states)
-    {
-        delete state;
-        state = nullptr;
-    }
-    for (auto &transition: transitions)
-    {
-        delete transition;
-        transition = nullptr;
-    }
-
+    states.clear();
+    transitions.clear();
     startingState = nullptr;
     alphabet.clear();
     states.clear();
@@ -89,7 +77,7 @@ void FA::fromJSON(const json &j)
     validateTransitionsAndStore(j["transitions"]);
 }
 
-void FA::addState(State *state)
+void FA::addState(const std::shared_ptr<State> &state)
 {
     if (state->starting)
     {
@@ -99,7 +87,7 @@ void FA::addState(State *state)
         }
         startingState = state;
     }
-    for (const auto s: states)
+    for (const std::shared_ptr<State> &s: states)
     {
         if (s->name == state->name)
         {
@@ -109,13 +97,13 @@ void FA::addState(State *state)
     states.push_back(state);
 }
 
-void FA::addTransition(Transition *transition)
+void FA::addTransition(const std::shared_ptr<Transition> &transition)
 {
     if (transition == nullptr || transition->from == nullptr || transition->to == nullptr)
     {
         return;
     }
-    for (const auto t: transitions)
+    for (const std::shared_ptr<Transition> &t: transitions)
     {
         if (t->from->name == transition->from->name
             && t->to->name == transition->to->name
@@ -132,15 +120,15 @@ json FA::to_json() const
     json j;
 
     j["type"] = "DFA";
-    for (const auto &symbol: alphabet)
+    for (const Symbol symbol: alphabet)
     {
         j["alphabet"].push_back(std::string().assign(1, symbol));
     }
-    for (const auto &state: states)
+    for (const std::shared_ptr<State> &state: states)
     {
         j["states"].push_back(state->to_json());
     }
-    for (const auto &transition: transitions)
+    for (const std::shared_ptr<Transition> &transition: transitions)
     {
         j["transitions"].push_back(transition->to_json());
     }
@@ -166,7 +154,7 @@ std::string FA::to_dot() const
 {
     std::string result = "digraph " + type + " {\n";
     result += "  rankdir=LR;\n";
-    for (const auto &state: states)
+    for (const std::shared_ptr<State> &state: states)
     {
         result += "  \"" + state->name + "\" [shape=" + (state->accepting ? "doublecircle" : "circle") + "];\n";
         if (state->starting)
@@ -174,7 +162,7 @@ std::string FA::to_dot() const
             result += "  start -> \"" + state->name + "\";\n";
         }
     }
-    for (const auto &transition: transitions)
+    for (const std::shared_ptr<Transition> &transition: transitions)
     {
         result += "  \"" + transition->from->name + "\" -> \"" + transition->to->name
                   + "\" [label=\"" + transition->symbol + "\"];\n";
@@ -188,9 +176,10 @@ std::string FA::to_stats() const
     std::string stats;
 
     auto symbol_count = [&](const Symbol symbol) -> long {
-        return std::count_if(transitions.begin(), transitions.end(), [&symbol](const Transition *transition) {
-            return transition->symbol == symbol;
-        });
+        return std::count_if(transitions.begin(), transitions.end(),
+                             [&symbol](const std::shared_ptr<Transition> &transition) {
+                                 return transition->symbol == symbol;
+                             });
     };
 
     std::vector<Symbol> alphabet_symbols;
@@ -198,11 +187,12 @@ std::string FA::to_stats() const
     std::sort(alphabet_symbols.begin(), alphabet_symbols.end());
 
     std::map<uint, uint> degrees;
-    for (const auto state: states)
+    for (const std::shared_ptr<State> &state: states)
     {
-        uint degree = std::count_if(transitions.begin(), transitions.end(), [state](const Transition *transition) {
-            return transition->from == state;
-        });
+        uint degree = std::count_if(transitions.begin(), transitions.end(),
+                                    [state](const std::shared_ptr<Transition> &transition) {
+                                        return transition->from == state;
+                                    });
         if (degrees.find(degree) == degrees.end())
         {
             degrees[degree] = 0;
@@ -228,7 +218,7 @@ std::string FA::to_stats() const
         stats += "no_of_transitions[" + std::string(1, symbol) + "]=" + std::to_string(symbol_count(symbol)) + "\n";
     }
 
-    for (const auto &degree: degrees_vector)
+    for (const uint degree: degrees_vector)
     {
         stats += "degree[" + std::to_string(degree) + "]=" + std::to_string(degrees[degree]) + "\n";
     }
@@ -247,9 +237,9 @@ void FA::printStats() const
 }
 
 
-void FA::validateAlphabetAndStore(const nlohmann::basic_json<> &alphabet_array)
+void FA::validateAlphabetAndStore(const nlohmann::json &alphabet_array)
 {
-    for (const auto &letter: alphabet_array)
+    for (const nlohmann::json &letter: alphabet_array)
     {
         if (!letter.is_string())
         {
@@ -264,9 +254,9 @@ void FA::validateAlphabetAndStore(const nlohmann::basic_json<> &alphabet_array)
     }
 }
 
-void FA::validateStatesAndStore(const nlohmann::basic_json<> &states_array)
+void FA::validateStatesAndStore(const nlohmann::json &states_array)
 {
-    for (const auto &state: states_array)
+    for (const nlohmann::json &state: states_array)
     {
         if (!state.is_object())
         {
@@ -297,7 +287,7 @@ void FA::validateStatesAndStore(const nlohmann::basic_json<> &states_array)
             throw std::runtime_error("state accepting attribute must be of type boolean");
         }
 
-        auto *new_state = new State(
+        std::shared_ptr<State> new_state = std::make_shared<State>(
                 state["name"].get<std::string>(),
                 state["starting"].get<bool>(),
                 state["accepting"].get<bool>());
@@ -310,9 +300,9 @@ void FA::validateStatesAndStore(const nlohmann::basic_json<> &states_array)
     }
 }
 
-void FA::validateTransitionsAndStore(const nlohmann::basic_json<> &transitions_array)
+void FA::validateTransitionsAndStore(const nlohmann::json &transitions_array)
 {
-    for (const auto &transition: transitions_array)
+    for (const nlohmann::json &transition: transitions_array)
     {
         if (!transition.is_object())
         {
@@ -366,7 +356,7 @@ void FA::validateTransitionsAndStore(const nlohmann::basic_json<> &transitions_a
         }
 
         addTransition(
-                new Transition(
+                std::make_shared<Transition>(
                         getState(transition["from"].get<std::string>()),
                         getState(transition["to"].get<std::string>()),
                         transition["input"].get<std::string>().front()));
@@ -374,10 +364,55 @@ void FA::validateTransitionsAndStore(const nlohmann::basic_json<> &transitions_a
 }
 
 
-std::vector<State *> FA::getAcceptingStates() const
+const std::string &FA::getType() const
 {
-    std::vector<State *> acceptStates;
-    for (auto state: states)
+    return type;
+}
+
+const std::set<Symbol> &FA::getAlphabet() const
+{
+    return alphabet;
+}
+
+Symbol FA::getEpsilon() const
+{
+    return epsilon;
+}
+
+void FA::setAlphabet(const std::set<Symbol> &alphbet)
+{
+    alphabet = alphbet;
+}
+
+void FA::setEpsilon(Symbol eps)
+{
+    epsilon = eps;
+}
+
+std::shared_ptr<State> FA::getStartingState() const
+{
+    return startingState;
+}
+
+const std::vector<std::shared_ptr<State>> &FA::getStates() const
+{
+    return states;
+}
+
+const std::vector<std::shared_ptr<Transition>> &FA::getTransitions() const
+{
+    return transitions;
+}
+
+std::shared_ptr<SetOfStates> FA::getStartingStates() const
+{
+    return e_closure(startingState, std::make_shared<SetOfStates>(true));
+}
+
+std::vector<std::shared_ptr<State>> FA::getAcceptingStates() const
+{
+    std::vector<std::shared_ptr<State>> acceptStates;
+    for (const std::shared_ptr<State> &state: states)
     {
         if (state->accepting)
         {
@@ -387,10 +422,10 @@ std::vector<State *> FA::getAcceptingStates() const
     return acceptStates;
 }
 
-std::vector<Transition *> FA::getTransitionsFromState(const State *state) const
+std::vector<std::shared_ptr<Transition>> FA::getTransitionsFromState(const std::shared_ptr<State> &state) const
 {
-    std::vector<Transition *> transitionFromState;
-    for (const auto transition: transitions)
+    std::vector<std::shared_ptr<Transition>> transitionFromState;
+    for (const std::shared_ptr<Transition> &transition: transitions)
     {
         if (transition->from == state)
         {
@@ -400,10 +435,10 @@ std::vector<Transition *> FA::getTransitionsFromState(const State *state) const
     return transitionFromState;
 }
 
-std::vector<Transition *> FA::getTransitionsToState(const State *state) const
+std::vector<std::shared_ptr<Transition>> FA::getTransitionsToState(const std::shared_ptr<State> &state) const
 {
-    std::vector<Transition *> transitionFromState;
-    for (const auto transition: transitions)
+    std::vector<std::shared_ptr<Transition>> transitionFromState;
+    for (const std::shared_ptr<Transition> &transition: transitions)
     {
         if (transition->to == state)
         {
@@ -413,9 +448,9 @@ std::vector<Transition *> FA::getTransitionsToState(const State *state) const
     return transitionFromState;
 }
 
-State *FA::getState(const std::string &name) const
+std::shared_ptr<State> FA::getState(const std::string &name) const
 {
-    for (const auto state: states)
+    for (const std::shared_ptr<State> &state: states)
     {
         if (state->name == name)
         {
@@ -425,9 +460,9 @@ State *FA::getState(const std::string &name) const
     return nullptr;
 }
 
-State *FA::getNextState(const State *from, const Symbol symbol) const
+std::shared_ptr<State> FA::getNextState(const std::shared_ptr<State> &from, const Symbol symbol) const
 {
-    for (const auto transition: transitions)
+    for (const std::shared_ptr<Transition> &transition: transitions)
     {
         if (transition->from == from && transition->symbol == symbol)
         {
@@ -437,12 +472,12 @@ State *FA::getNextState(const State *from, const Symbol symbol) const
     return nullptr;
 }
 
-SetOfStates *FA::getNextStates(const SetOfStates *from, const Symbol symbol) const
+std::shared_ptr<SetOfStates> FA::getNextStates(const std::shared_ptr<SetOfStates> &from, const Symbol symbol) const
 {
-    auto *nextStates = new SetOfStates({});
-    for (const auto state: from->states)
+    std::shared_ptr<SetOfStates> nextStates = std::make_shared<SetOfStates>();
+    for (const std::shared_ptr<State> &state: from->states)
     {
-        for (const auto transition: transitions)
+        for (const std::shared_ptr<Transition> &transition: transitions)
         {
             if (transition->from == state && transition->symbol == symbol)
             {
@@ -455,15 +490,16 @@ SetOfStates *FA::getNextStates(const SetOfStates *from, const Symbol symbol) con
 
 
 // modifies the given set of states
-SetOfStates *FA::e_closure(State *state, SetOfStates *states) const
+std::shared_ptr<SetOfStates>
+FA::e_closure(const std::shared_ptr<State> &state, const std::shared_ptr<SetOfStates> &setofstates) const
 {
-    states->add(state);
-    for (const auto transition: transitions)
+    setofstates->add(state);
+    for (const std::shared_ptr<Transition> &transition: transitions)
     {
-        if (transition->from == state && transition->symbol == epsilon && !states->states.count(transition->to))
+        if (transition->from == state && transition->symbol == epsilon && !setofstates->states.count(transition->to))
         {
-            e_closure(transition->to, states);
+            e_closure(transition->to, setofstates);
         }
     }
-    return states;
+    return setofstates;
 }

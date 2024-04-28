@@ -55,10 +55,10 @@ int main()
 
     DFA dfa;
     dfa.clear();
-    dfa.fromPath("jsons/expected_output-ssc1.json");
-    StatesTable table;
-    table.from(&dfa);
-    cout << table.to_string() << endl;
+    dfa.fromPath("jsons/input-tfa1.json");
+    DFA min = dfa.minimize();
+    min.printTable();
+    min.print();
 
 
     cout << "All tests passed" << endl;

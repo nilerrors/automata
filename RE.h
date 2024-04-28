@@ -32,13 +32,13 @@ public:
 
     ~RExpression();
 
-    [[nodiscard]] ENFA *toENFA(Symbol epsilon) const;
+    [[nodiscard]] std::shared_ptr<ENFA> toENFA(Symbol epsilon) const;
 
 private:
     RExpressionType type = EMPTY;
     std::string value;
-    RExpression *left = nullptr;
-    RExpression *right = nullptr;
+    std::shared_ptr<RExpression> left = nullptr;
+    std::shared_ptr<RExpression> right = nullptr;
 };
 
 

@@ -7,29 +7,31 @@
 
 #include <vector>
 #include <string>
+#include <set>
+#include <memory>
 
 class State;
 
-class FA;
+class DFA;
 
 struct StateEquivalence
 {
-    State *first;
-    State *second;
-    bool is_equivalent;
+    std::shared_ptr<State> first;
+    std::shared_ptr<State> second;
+    bool is_distinguishable;
 
     StateEquivalence()
     {
         first = nullptr;
         second = nullptr;
-        is_equivalent = false;
+        is_distinguishable = false;
     }
 
-    StateEquivalence(State *f, State *s, bool eqv)
+    StateEquivalence(const std::shared_ptr<State> &f, const std::shared_ptr<State> &s, bool eqv)
     {
         first = f;
         second = s;
-        is_equivalent = eqv;
+        is_distinguishable = eqv;
     }
 };
 
@@ -40,15 +42,24 @@ public:
 
     virtual ~StatesTable();
 
-    void from(FA *fa);
+    void from(const DFA *dfa);
+
+    void fill();
+
+    [[nodiscard]]
+    std::vector<StateEquivalence> get_indistinguishable() const;
 
     [[nodiscard]]
     std::string to_string() const;
 
 private:
+    bool distinguishable(const std::shared_ptr<State> &first, std::shared_ptr<State> &second) const;
+
+private:
     std::vector<StateEquivalence> table;
-    std::vector<State *> rows;
-    std::vector<State *> cols;
+    std::vector<std::shared_ptr<State>> rows;
+    std::vector<std::shared_ptr<State>> cols;
+    DFA const *fa = nullptr;
 };
 
 

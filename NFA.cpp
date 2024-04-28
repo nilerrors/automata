@@ -33,18 +33,18 @@ DFA NFA::toDFA() const
 
     dfa.clear();
     dfa.setAlphabet(alphabet);
-    SetOfStates *starting = getStartingStates();
-    std::deque<SetOfStates *> unprocessed_states = {starting};
-    std::set<SetOfStates *> all_states = {starting};
+    std::shared_ptr<SetOfStates> starting = getStartingStates();
+    std::deque<std::shared_ptr<SetOfStates>> unprocessed_states = {starting};
+    std::set<std::shared_ptr<SetOfStates>> all_states = {starting};
 
-    auto in_all_states = [&all_states](SetOfStates const *set) -> bool {
-        return std::any_of(all_states.cbegin(), all_states.cend(), [set](const SetOfStates *s) {
+    auto in_all_states = [&all_states](const std::shared_ptr<SetOfStates> &set) -> bool {
+        return std::any_of(all_states.cbegin(), all_states.cend(), [set](const std::shared_ptr<SetOfStates> &s) {
             return s->states.size() == set->states.size() && s->to_string() == set->to_string();
         });
     };
 
-    auto get_from_all_states = [&all_states](const std::string &name) -> SetOfStates * {
-        for (SetOfStates *s: all_states)
+    auto get_from_all_states = [&all_states](const std::string &name) -> std::shared_ptr<SetOfStates> {
+        for (const std::shared_ptr<SetOfStates> &s: all_states)
         {
             if (s->to_string() == name)
             {
@@ -58,7 +58,7 @@ DFA NFA::toDFA() const
 
     while (!unprocessed_states.empty())
     {
-        SetOfStates *current_state = unprocessed_states.front();
+        std::shared_ptr<SetOfStates> current_state = unprocessed_states.front();
         unprocessed_states.pop_front();
 
         if (!in_all_states(current_state))
@@ -68,7 +68,7 @@ DFA NFA::toDFA() const
 
         for (const Symbol symbol: alphabet)
         {
-            SetOfStates *next_state = getNextStates(current_state, symbol);
+            std::shared_ptr<SetOfStates> next_state = getNextStates(current_state, symbol);
 
             if (!in_all_states(next_state))
             {
@@ -79,19 +79,11 @@ DFA NFA::toDFA() const
             else
             {
                 std::string name = next_state->to_string();
-                delete next_state;
                 next_state = get_from_all_states(name);
             }
 
-            dfa.addTransition(
-                    new Transition(current_state->to_state(), next_state->to_state(), symbol));
+            dfa.addTransition(std::make_shared<Transition>(current_state->to_state(), next_state->to_state(), symbol));
         }
-    }
-
-    // Remove all temporary set of states
-    for (auto &state: all_states)
-    {
-        delete state;
     }
 
     return dfa;
