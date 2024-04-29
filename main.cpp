@@ -59,6 +59,7 @@ int main()
     DFA min = dfa.minimize();
     min.printTable();
     min.print();
+    min.to_dot("dots/output-tfa1.dot");
 
 
     cout << "All tests passed" << endl;

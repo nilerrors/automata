@@ -41,5 +41,7 @@ private:
     std::shared_ptr<StatesTable> table = nullptr;
 };
 
+bool operator==(const DFA &a, const DFA &b);
+
 
 #endif //AUTOMATA_DFA_H

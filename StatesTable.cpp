@@ -21,9 +21,8 @@ void StatesTable::from(const DFA *dfa)
         return;
     }
 
-    std::sort(fa_states.begin(), fa_states.end(), [](const std::shared_ptr<State> &a, const std::shared_ptr<State> &b) {
-        return a->name < b->name;
-    });
+    std::sort(fa_states.begin(), fa_states.end(),
+              [](const std::shared_ptr<State> &a, const std::shared_ptr<State> &b) { return a->name < b->name; });
 
     for (const std::shared_ptr<State> &state: fa_states)
     {
@@ -42,7 +41,7 @@ void StatesTable::from(const DFA *dfa)
         for (std::shared_ptr<State> &col: cols)
         {
             if (row == col || row->name < col->name
-                || std::any_of(table.begin(), table.end(), [&](StateEquivalence eqv) -> bool {
+                || std::any_of(table.begin(), table.end(), [&](const StateEquivalence &eqv) -> bool {
                 return (eqv.first == row && eqv.second == col) || (eqv.first == col && eqv.second == row);
             }))
             {
@@ -71,20 +70,20 @@ void StatesTable::fill()
         changed = false;
         for (StateEquivalence &eqv: table)
         {
-            if (!eqv.is_distinguishable)
+            if (!eqv.is_distinguishable && !eqv.unresolvable)
             {
                 for (Symbol symbol: fa->getAlphabet())
                 {
                     std::shared_ptr<State> next_first = fa->getTransitionFromStateBySymbol(eqv.first, symbol)->to;
                     std::shared_ptr<State> next_second = fa->getTransitionFromStateBySymbol(eqv.second, symbol)->to;
-                    if (next_first != nullptr && next_second != nullptr
-                        && distinguishable(next_first, next_second))
+                    if (next_first != nullptr && next_second != nullptr && distinguishable(next_first, next_second))
                     {
                         eqv.is_distinguishable = true;
                         changed = true;
                         break;
                     }
                 }
+                eqv.unresolvable = true;
             }
         }
     }

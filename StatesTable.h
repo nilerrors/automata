@@ -19,6 +19,7 @@ struct StateEquivalence
     std::shared_ptr<State> first;
     std::shared_ptr<State> second;
     bool is_distinguishable;
+    bool unresolvable = false;
 
     StateEquivalence()
     {

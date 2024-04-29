@@ -68,16 +68,11 @@ DFA::DFA(const DFA &first, const DFA &second, const bool isIntersection) : FA("D
     std::set<std::shared_ptr<PairOfStates>> processed_states = {startingState};
     std::set<std::shared_ptr<PairOfStates>> all_pairs_of_states = {startingState};
 
-
     auto in_processed_states = [&processed_states](const std::shared_ptr<PairOfStates> &pair) -> bool {
-        for (const std::shared_ptr<PairOfStates> &state: processed_states)
-        {
-            return (state->states.first == pair->states.first &&
-                    state->states.second == pair->states.second)
-                   || (state->states.first == pair->states.second &&
-                       state->states.second == pair->states.first);
-        }
-        return false;
+        return std::any_of(processed_states.begin(), processed_states.end(), [pair](const std::shared_ptr<PairOfStates> &state) {
+            return (state->states.first == pair->states.first && state->states.second == pair->states.second)
+                   || (state->states.first == pair->states.second && state->states.second == pair->states.first);
+        });
     };
 
     auto from_all_states = [&all_pairs_of_states](const std::shared_ptr<State> &f,
@@ -166,6 +161,7 @@ DFA DFA::minimize() const
 {
     DFA min;
     min.clear();
+    min.alphabet = alphabet;
     min.minimized = true;
     min.table = std::make_shared<StatesTable>();
     min.table->from(this);
@@ -191,7 +187,7 @@ DFA DFA::minimize() const
         return std::make_pair(false, nullptr);
     };
 
-    for (StateEquivalence eqv: min.table->get_indistinguishable())
+    for (const StateEquivalence &eqv: min.table->get_indistinguishable())
     {
         std::pair<bool, std::shared_ptr<SetOfStates>> first_in_merged = in_merged_states(eqv.first);
         std::pair<bool, std::shared_ptr<SetOfStates>> second_in_merged = in_merged_states(eqv.second);
@@ -199,14 +195,23 @@ DFA DFA::minimize() const
         if (!first_in_merged.first && !second_in_merged.first)
         {
             merged_states.push_back(std::make_shared<SetOfStates>(std::set({eqv.first, eqv.second})));
+            merged_states.back()->isStarting = eqv.first->starting || eqv.second->starting;
         }
         else if (first_in_merged.first)
         {
             first_in_merged.second->add(eqv.second);
+            if (eqv.second->starting)
+            {
+                first_in_merged.second->isStarting = true;
+            }
         }
         else if (second_in_merged.second)
         {
             second_in_merged.second->add(eqv.first);
+            if (eqv.second->starting)
+            {
+                first_in_merged.second->isStarting = true;
+            }
         }
     }
 
@@ -216,19 +221,33 @@ DFA DFA::minimize() const
         if (!state_in_merged.first)
         {
             merged_states.push_back(std::make_shared<SetOfStates>(std::set({state})));
+            merged_states.back()->isStarting = state->starting;
         }
     }
 
     for (const std::shared_ptr<SetOfStates> &ms: merged_states)
     {
         min.addState(ms->to_state());
+        if (ms->to_state()->starting)
+        {
+            min.startingState = ms->to_state();
+        }
     }
 
-//    for (const SetOfStates &ms: merged_states)
-//    {
-//        std::cout << ms.to_string() << std::endl;
-//    }
-//
+    for (const std::shared_ptr<Transition> &transition: transitions)
+    {
+        std::pair<bool, std::shared_ptr<SetOfStates>> from_in_merged = in_merged_states(transition->from);
+        std::pair<bool, std::shared_ptr<SetOfStates>> to_in_merged = in_merged_states(transition->to);
+
+        if (!from_in_merged.first || !to_in_merged.first)
+        {
+            continue;
+        }
+
+        min.addTransition(std::make_shared<Transition>(
+                from_in_merged.second->to_state(), to_in_merged.second->to_state(), transition->symbol));
+    }
+
     return min;
 }
 
@@ -254,4 +273,9 @@ DFA::getTransitionFromStateBySymbol(const std::shared_ptr<State> &state, Symbol 
     }
 
     return nullptr;
+}
+
+bool operator==(const DFA &a, const DFA &b)
+{
+    return false;
 }
